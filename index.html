@@ -446,6 +446,22 @@
         <h2>Activity Status / Count</h2>
         <div class="chart" id="statusChart"></div>
       </article>
+      <article class="chart-panel">
+        <h2>Activities by Month</h2>
+        <div class="chart" id="activityMonthChart"></div>
+      </article>
+      <article class="chart-panel">
+        <h2>Foreign Travel by Event Type</h2>
+        <div class="chart" id="travelEventChart"></div>
+      </article>
+      <article class="chart-panel">
+        <h2>Leave Days by Division</h2>
+        <div class="chart" id="leaveDaysChart"></div>
+      </article>
+      <article class="chart-panel">
+        <h2>Division Activity Mix</h2>
+        <div class="chart" id="divisionMixChart"></div>
+      </article>
     </section>
 
     <section class="table-panel">
@@ -483,6 +499,10 @@
       leaveChart: document.getElementById("leaveChart"),
       travelChart: document.getElementById("travelChart"),
       statusChart: document.getElementById("statusChart"),
+      activityMonthChart: document.getElementById("activityMonthChart"),
+      travelEventChart: document.getElementById("travelEventChart"),
+      leaveDaysChart: document.getElementById("leaveDaysChart"),
+      divisionMixChart: document.getElementById("divisionMixChart"),
       tableWrap: document.getElementById("tableWrap"),
       recordNote: document.getElementById("recordNote")
     };
@@ -580,32 +600,43 @@
     }
 
     function makeActivity(values) {
+      const rawPeriod = values["Period/Date"];
       return {
         title: values["Activity Title"],
         description: values["Brief Description"],
-        period: formatExcelDate(values["Period/Date"]),
+        period: formatExcelDate(rawPeriod),
+        periodRaw: rawPeriod,
         status: values["Status"] || "Not stated"
       };
     }
 
     function makeTravel(values) {
+      const rawStart = values["Start Date"];
+      const rawEnd = values["End Date"];
       return {
         destination: values["Destination Country"],
-        start: formatExcelDate(values["Start Date"]),
-        end: formatExcelDate(values["End Date"]),
+        start: formatExcelDate(rawStart),
+        startRaw: rawStart,
+        end: formatExcelDate(rawEnd),
+        endRaw: rawEnd,
         duration: values["Duration"],
         purpose: values["Purpose/Event"],
-        eventType: values["Event Type"],
+        eventType: values["Event Type"] || values["Specify if other"] || "Not stated",
         sponsor: values["Sponsoring Organization"]
       };
     }
 
     function makeLeave(values) {
+      const rawStart = values["Start Date"];
+      const rawEnd = values["End Date"];
       return {
         type: values["Leave Type"],
-        start: formatExcelDate(values["Start Date"]),
-        end: formatExcelDate(values["End Date"]),
+        start: formatExcelDate(rawStart),
+        startRaw: rawStart,
+        end: formatExcelDate(rawEnd),
+        endRaw: rawEnd,
         duration: values["Duration"],
+        days: parseDurationDays(values["Duration"], rawStart, rawEnd),
         remarks: values["Remarks"]
       };
     }
@@ -653,12 +684,19 @@
       renderBarChart(els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052" });
       renderBarChart(els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true });
       renderBarChart(els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32" });
+      renderBarChart(els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month" });
+      renderBarChart(els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052" });
+      renderBarChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), { color: "#f6bd19", darkText: true, valueSuffix: " days" });
+      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows));
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
     }
 
     function renderBarChart(target, data, options = {}) {
-      const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const entries = Object.entries(data).sort((a, b) => {
+        if (options.sort === "month") return monthSortValue(a[0]) - monthSortValue(b[0]);
+        return b[1] - a[1];
+      }).slice(0, 10);
       if (!entries.length) {
         target.innerHTML = `<div class="empty">No data available for this view.</div>`;
         return;
@@ -670,17 +708,19 @@
       const max = Math.max(...entries.map(([, value]) => value));
       const color = options.color || "#0b3a78";
       const textColor = options.darkText ? "#2c2d31" : "#ffffff";
+      const valueSuffix = options.valueSuffix || "";
 
       const rows = entries.map(([label, value], i) => {
         const barWidth = Math.max(8, Math.round((value / max) * 430));
         const y = 30 + i * rowHeight;
         const safeLabel = escapeHtml(label || "Unspecified");
+        const displayValue = formatNumber(value);
         const click = options.onClick ? ` data-chart-value="${safeLabel}" style="cursor:pointer"` : "";
         return `
           <g${click}>
             <text x="0" y="${y + 20}" fill="#34445c" font-size="14" font-weight="700">${truncate(safeLabel, 28)}</text>
             <rect x="245" y="${y}" width="${barWidth}" height="24" rx="5" fill="${color}"></rect>
-            <text x="${255 + Math.min(barWidth - 18, 390)}" y="${y + 17}" fill="${textColor}" font-size="13" font-weight="800">${value}</text>
+            <text x="${255 + Math.min(barWidth - 18, 390)}" y="${y + 17}" fill="${textColor}" font-size="13" font-weight="800">${displayValue}${valueSuffix}</text>
           </g>
         `;
       }).join("");
@@ -691,6 +731,61 @@
           node.addEventListener("click", () => options.onClick(node.getAttribute("data-chart-value")));
         });
       }
+    }
+
+    function renderStackedChart(target, data) {
+      const entries = Object.entries(data)
+        .map(([division, values]) => ({ division, ...values, total: values.activities + values.travels + values.leaves }))
+        .filter(item => item.total > 0)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const rowHeight = 42;
+      const height = Math.max(286, entries.length * rowHeight + 72);
+      const max = Math.max(...entries.map(item => item.total));
+      const colors = {
+        activities: "#0b3a78",
+        travels: "#f6bd19",
+        leaves: "#149052"
+      };
+
+      const rows = entries.map((item, i) => {
+        const y = 36 + i * rowHeight;
+        let x = 245;
+        const segments = ["activities", "travels", "leaves"].map(key => {
+          const segmentWidth = item[key] ? Math.max(7, Math.round((item[key] / max) * 430)) : 0;
+          const segment = segmentWidth ? `<rect x="${x}" y="${y}" width="${segmentWidth}" height="24" rx="4" fill="${colors[key]}"><title>${key}: ${item[key]}</title></rect>` : "";
+          x += segmentWidth;
+          return segment;
+        }).join("");
+
+        return `
+          <g>
+            <text x="0" y="${y + 18}" fill="#34445c" font-size="14" font-weight="700">${truncate(escapeHtml(item.division), 28)}</text>
+            ${segments}
+            <text x="${Math.min(x + 10, 705)}" y="${y + 17}" fill="#1e2a3c" font-size="13" font-weight="800">${item.total}</text>
+          </g>
+        `;
+      }).join("");
+
+      const legend = `
+        <g>
+          <rect x="0" y="${height - 26}" width="12" height="12" fill="${colors.activities}"></rect>
+          <text x="18" y="${height - 16}" fill="#53657d" font-size="12">Activities</text>
+          <rect x="118" y="${height - 26}" width="12" height="12" fill="${colors.travels}"></rect>
+          <text x="136" y="${height - 16}" fill="#53657d" font-size="12">Foreign travels</text>
+          <rect x="266" y="${height - 26}" width="12" height="12" fill="${colors.leaves}"></rect>
+          <text x="284" y="${height - 16}" fill="#53657d" font-size="12">Leave records</text>
+        </g>
+      `;
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked bar chart">${rows}${legend}</svg>`;
     }
 
     function renderTable(rows) {
@@ -765,6 +860,34 @@
       }, {});
     }
 
+    function countsByMonth(rows) {
+      return rows.reduce((acc, row) => {
+        const label = monthLabel(row.periodRaw || row.period);
+        if (!label) return acc;
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function sumByDivision(rows, field) {
+      return rows.reduce((acc, row) => {
+        const division = row.parent.division || "Unspecified";
+        acc[division] = (acc[division] || 0) + (Number(row[field]) || 0);
+        return acc;
+      }, {});
+    }
+
+    function buildDivisionMix(rows) {
+      return rows.reduce((acc, row) => {
+        const division = row.division || "Unspecified";
+        if (!acc[division]) acc[division] = { activities: 0, travels: 0, leaves: 0 };
+        acc[division].activities += row.activities.length;
+        acc[division].travels += row.travels.length;
+        acc[division].leaves += row.leaves.length;
+        return acc;
+      }, {});
+    }
+
     function unique(values) {
       return [...new Set(values.map(cleanText).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     }
@@ -789,6 +912,54 @@
       if (!Number.isFinite(number) || number < 20000 || number > 90000) return text;
       const date = new Date(Date.UTC(1899, 11, 30) + number * 86400000);
       return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function excelDateToDate(value) {
+      const text = cleanText(value);
+      if (!text) return null;
+      const number = Number(text);
+      if (Number.isFinite(number) && number >= 20000 && number <= 90000) {
+        return new Date(Date.UTC(1899, 11, 30) + number * 86400000);
+      }
+      const parsed = new Date(text);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function monthLabel(value) {
+      const date = excelDateToDate(value);
+      if (!date) return "";
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short" });
+    }
+
+    function monthSortValue(label) {
+      const date = new Date(`1 ${label}`);
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    function parseDurationDays(duration, start, end) {
+      const text = cleanText(duration).toLowerCase();
+      const direct = Number(text);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+
+      const match = text.match(/(\d+(?:\.\d+)?)/);
+      if (match) {
+        const value = Number(match[1]);
+        if (text.includes("week")) return value * 5;
+        return value;
+      }
+
+      const startDate = excelDateToDate(start);
+      const endDate = excelDateToDate(end);
+      if (startDate && endDate && endDate >= startDate) {
+        return Math.round((endDate - startDate) / 86400000) + 1;
+      }
+      return 0;
+    }
+
+    function formatNumber(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return cleanText(value);
+      return Number.isInteger(number) ? String(number) : number.toFixed(1);
     }
 
     function truncate(value, limit) {
