@@ -1427,6 +1427,34 @@
         </div>
         <div class="chart" id="descriptionChart"></div>
       </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Unit Head Response</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="unitHeadChart" aria-label="Unit Head Response chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="unitHeadChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="unitHeadChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Unit Heads by Division</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="unitHeadDivisionChart" aria-label="Unit Heads by Division chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="unitHeadDivisionChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="unitHeadDivisionChart"></div>
+      </article>
     </section>
 
     <section class="table-panel">
@@ -1540,6 +1568,8 @@
       leaveDaysChart: document.getElementById("leaveDaysChart"),
       divisionMixChart: document.getElementById("divisionMixChart"),
       descriptionChart: document.getElementById("descriptionChart"),
+      unitHeadChart: document.getElementById("unitHeadChart"),
+      unitHeadDivisionChart: document.getElementById("unitHeadDivisionChart"),
       summaryNarrative: document.getElementById("summaryNarrative"),
       summaryTopDivision: document.getElementById("summaryTopDivision"),
       summaryTopStatus: document.getElementById("summaryTopStatus"),
@@ -1707,6 +1737,7 @@
             email: get("Email"),
             division: canonicalDivision(get("Division")),
             designation: get("Designation") || "Unspecified",
+            unitHead: unitHeadLabel(get("Are you a unit head?")),
             startTime: formatExcelDate(get("Start time")),
             completionTime: formatExcelDate(get("Completion time")),
             activities: extractGroups(values, headers, "Activity Title", ["Brief Description", "Period/Date", "Status"], makeActivity),
@@ -1735,6 +1766,7 @@
             email: get("Email"),
             division: canonicalDivision(get("Division")),
             designation: get("Designation") || "Unspecified",
+            unitHead: unitHeadLabel(get("Are you a unit head?")),
             startTime: formatExcelDate(get("Start time")),
             completionTime: formatExcelDate(get("Completion time")),
             activities: extractGroups(row, headers, "Activity Title", ["Brief Description", "Period/Date", "Status"], makeActivity),
@@ -1748,7 +1780,7 @@
 
     function buildSearchText(base) {
       return [
-        base.name, base.email, base.division, base.designation,
+        base.name, base.email, base.division, base.designation, base.unitHead,
         ...base.activities.flatMap(a => [a.title, a.description, a.period, monthLabel(a.periodRaw), a.status]),
         ...base.travels.flatMap(t => [t.destination, t.start, t.end, t.duration, t.purpose, t.eventType, t.sponsor]),
         ...base.leaves.flatMap(l => [l.type, l.start, l.end, l.duration, l.remarks])
@@ -1870,6 +1902,8 @@
       renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), openDivisionSpotlight, state.chartTypes.leaveDaysChart || "bar");
       renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), openDivisionSpotlight, state.chartTypes.divisionMixChart || "stacked-bar");
       renderChoiceChart("descriptionChart", els.descriptionChart, descriptionKeywordCounts(activityRows), { color: "#4c6fb0", onClick: value => setSearch(value) });
+      renderChoiceChart("unitHeadChart", els.unitHeadChart, counts(rows.map(row => row.unitHead)), { color: "#0b3a78", onClick: value => setSearch(value) });
+      renderChoiceChart("unitHeadDivisionChart", els.unitHeadDivisionChart, unitHeadCountsByDivision(rows), { color: "#f6bd19", darkText: true, onClick: openDivisionSpotlight });
       renderDivisionSpotlight();
       renderDataQualityMonitor(rows);
       renderTable(rows);
@@ -2328,6 +2362,7 @@
       const travelRows = reportRows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
       const leaveRows = reportRows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
       const staff = unique(reportRows.map(row => row.name)).filter(name => normalize(name) !== "unnamed");
+      const staffWithRoles = buildStaffRoleList(reportRows);
       const statusBreakdown = topEntries(counts(activityRows.map(row => row.status)), 5);
       const travelBreakdown = topEntries(counts(travelRows.map(row => row.destination)), 5);
       const leaveBreakdown = topEntries(counts(leaveRows.map(row => row.type)), 5);
@@ -2345,7 +2380,7 @@
           ${spotlightMetric("Leave", leaveRows.length)}
         </div>
         <div class="spotlight-sections">
-          ${spotlightListBox("Staff", staff.slice(0, 8), staff.length > 8 ? `${staff.length - 8} more staff member${staff.length - 8 === 1 ? "" : "s"}` : "")}
+          ${spotlightListBox("Staff", staffWithRoles.slice(0, 8), staffWithRoles.length > 8 ? `${staffWithRoles.length - 8} more staff member${staffWithRoles.length - 8 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Activities", activityRows.slice(0, 6).map(row => `${row.title || "Untitled activity"} (${row.status || "No status"})`), activityRows.length > 6 ? `${activityRows.length - 6} more activit${activityRows.length - 6 === 1 ? "y" : "ies"}` : "")}
           ${spotlightListBox("Foreign Travel", travelRows.slice(0, 6).map(row => `${row.destination || "Unspecified destination"}${row.eventType ? ` - ${row.eventType}` : ""}`), travelRows.length > 6 ? `${travelRows.length - 6} more travel record${travelRows.length - 6 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${formatDays(leaveDayCount(row))}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
@@ -2375,6 +2410,25 @@
           </ul>
         </div>
       `;
+    }
+
+    function buildStaffRoleList(rows) {
+      const staff = new Map();
+      rows.forEach(row => {
+        const name = cleanText(row.name);
+        if (!name || normalize(name) === "unnamed") return;
+        const existing = staff.get(name) || { unitHead: "Not stated", designation: "" };
+        if (isUnitHead(row)) existing.unitHead = "Yes";
+        if (!existing.designation && cleanText(row.designation) && row.designation !== "Unspecified") existing.designation = row.designation;
+        staff.set(name, existing);
+      });
+
+      return [...staff.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, info]) => {
+          const role = info.unitHead === "Yes" ? "Unit Head" : info.designation;
+          return role ? `${name} - ${role}` : name;
+        });
     }
 
     function divisionObservations(rows, activityRows, travelRows, leaveRows, leaveDays, topStatus, topTravel) {
@@ -2589,6 +2643,15 @@
         return `<strong>${matches.length}</strong> ${leaveType ? "annual leave" : "leave"} record${matches.length === 1 ? "" : "s"} found. Staff captured: <strong>${escapeHtml(names.join(", "))}${extra}</strong>.${leaveType ? " I filtered the dashboard to annual leave." : ""}`;
       }
 
+      if (q.includes("unit head") || q.includes("unit heads")) {
+        const unitHeads = rows.filter(isUnitHead);
+        const names = unique(unitHeads.map(row => row.name)).slice(0, 10);
+        if (!unitHeads.length) return "No unit head responses marked Yes are available in the current view.";
+        setSearch("Yes");
+        const extra = unique(unitHeads.map(row => row.name)).length > names.length ? " and others" : "";
+        return `<strong>${unitHeads.length}</strong> submission${unitHeads.length === 1 ? "" : "s"} are marked as unit head responses. Staff captured: <strong>${escapeHtml(names.join(", "))}${extra}</strong>.`;
+      }
+
       const division = findDivisionInQuestion(q);
       if (q.includes("summarize") && division) {
         setFilter(els.divisionFilter, division);
@@ -2694,7 +2757,9 @@
         { type: "chart", title: "Leave by Type", chartId: "leaveChart" },
         { type: "chart", title: "Leave Days by Division", chartId: "leaveDaysChart" },
         { type: "chart", title: "Division Activity Mix", chartId: "divisionMixChart" },
-        { type: "chart", title: "Description Keywords", chartId: "descriptionChart" }
+        { type: "chart", title: "Description Keywords", chartId: "descriptionChart" },
+        { type: "chart", title: "Unit Head Response", chartId: "unitHeadChart" },
+        { type: "chart", title: "Unit Heads by Division", chartId: "unitHeadDivisionChart" }
       ];
     }
 
@@ -3173,6 +3238,7 @@
             <td>${escapeHtml(row.name)}<br><span class="small-note">${escapeHtml(row.email)}</span></td>
             <td><button class="summary-chip" type="button" data-division-spotlight="${escapeHtml(row.division)}"><span>Division</span><strong>${escapeHtml(row.division)}</strong></button></td>
             <td>${escapeHtml(row.designation)}</td>
+            <td>${escapeHtml(row.unitHead)}</td>
             <td>${activities || "<span class=\"small-note\">None</span>"}</td>
             <td>${descriptions || "<span class=\"small-note\">None</span>"}</td>
             <td>${travels || "<span class=\"small-note\">None</span>"}</td>
@@ -3191,6 +3257,7 @@
               <th>Employee</th>
               <th>Division</th>
               <th>Designation</th>
+              <th>Unit Head</th>
               <th>Activities</th>
               <th>Brief Descriptions</th>
               <th>Foreign Travels</th>
@@ -3231,7 +3298,7 @@
 
       return `
         <tr class="detail-row">
-          <td colspan="9">
+          <td colspan="10">
             <div class="detail-grid">
               <div class="detail-box">
                 <h3>Activities</h3>
@@ -3398,6 +3465,15 @@
       }, {});
     }
 
+    function unitHeadCountsByDivision(rows) {
+      return rows.reduce((acc, row) => {
+        if (!isUnitHead(row)) return acc;
+        const division = row.division || "Unspecified";
+        acc[division] = (acc[division] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
     function descriptionKeywordCounts(activityRows) {
       const stopWords = new Set([
         "and", "the", "for", "with", "from", "that", "this", "have", "has", "was", "were", "are", "been",
@@ -3452,6 +3528,22 @@
 
     function isKnownDivision(value) {
       return KNOWN_DIVISIONS.some(division => divisionKey(division) === divisionKey(value));
+    }
+
+    function unitHeadLabel(value) {
+      const text = cleanText(value);
+      if (!text) return "Not stated";
+      if (isAffirmative(text)) return "Yes";
+      if (normalize(text) === "no") return "No";
+      return text;
+    }
+
+    function isUnitHead(row) {
+      return isAffirmative(row && row.unitHead);
+    }
+
+    function isAffirmative(value) {
+      return ["yes", "y", "true", "unit head"].includes(normalize(value));
     }
 
     function divisionKey(value) {
