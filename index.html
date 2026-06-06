@@ -545,7 +545,7 @@
 
     .quality-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      grid-template-columns: repeat(7, minmax(120px, 1fr));
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -1198,6 +1198,20 @@
       presentationSlides: []
     };
 
+    const KNOWN_DIVISIONS = [
+      "RIPS",
+      "ENGINEERING",
+      "FINANCE",
+      "HUMAN RESOURCE",
+      "AUDIT",
+      "ADMINISTRATION",
+      "LEGAL",
+      "CONSUMER AFFAIRS",
+      "CYBERSECURITY",
+      "PROCUREMENT AND PROTOCOL",
+      "INFORMATION TECHNOLOGY"
+    ];
+
     const els = {
       fileInput: document.getElementById("fileInput"),
       fileState: document.getElementById("fileState"),
@@ -1395,7 +1409,7 @@
             rowId: get("Id") || String(index + 1),
             name: get("Full Name") || get("Name") || "Unnamed",
             email: get("Email"),
-            division: get("Division") || "Unspecified",
+            division: canonicalDivision(get("Division")),
             designation: get("Designation") || "Unspecified",
             startTime: formatExcelDate(get("Start time")),
             completionTime: formatExcelDate(get("Completion time")),
@@ -1423,7 +1437,7 @@
             rowId: get("Id") || String(index + 1),
             name: get("Full Name") || get("Name") || "Unnamed",
             email: get("Email"),
-            division: get("Division") || "Unspecified",
+            division: canonicalDivision(get("Division")),
             designation: get("Designation") || "Unspecified",
             startTime: formatExcelDate(get("Start time")),
             completionTime: formatExcelDate(get("Completion time")),
@@ -1510,7 +1524,7 @@
     }
 
     function populateFilters() {
-      setOptions(els.divisionFilter, "All Divisions", unique(state.submissions.map(s => s.division)));
+      setOptions(els.divisionFilter, "All Divisions", unique([...KNOWN_DIVISIONS, ...state.submissions.map(s => s.division)]));
       setOptions(els.designationFilter, "All Designations", unique(state.submissions.map(s => s.designation)));
     }
 
@@ -1821,12 +1835,14 @@
 
     function dataCompleteness(rows) {
       let missingDivision = 0;
+      let unknownDivision = 0;
       let missingDesignation = 0;
       let missingActivities = 0;
       let missingDescriptions = 0;
 
       rows.forEach(row => {
         if (!cleanText(row.division) || row.division === "Unspecified") missingDivision += 1;
+        if (cleanText(row.division) && row.division !== "Unspecified" && !isKnownDivision(row.division)) unknownDivision += 1;
         if (!cleanText(row.designation) || row.designation === "Unspecified") missingDesignation += 1;
         if (!row.activities.length) missingActivities += 1;
         missingDescriptions += row.activities.filter(activity => !cleanText(activity.description)).length;
@@ -1834,12 +1850,13 @@
 
       const parts = [];
       if (missingDivision) parts.push(`${missingDivision} missing division`);
+      if (unknownDivision) parts.push(`${unknownDivision} unknown division`);
       if (missingDesignation) parts.push(`${missingDesignation} missing designation`);
       if (missingActivities) parts.push(`${missingActivities} without activities`);
       if (missingDescriptions) parts.push(`${missingDescriptions} activity description gap${missingDescriptions === 1 ? "" : "s"}`);
 
       return {
-        missingCount: missingDivision + missingDesignation + missingActivities + missingDescriptions,
+        missingCount: missingDivision + unknownDivision + missingDesignation + missingActivities + missingDescriptions,
         summary: parts.length ? parts.join("; ") + "." : ""
       };
     }
@@ -1855,6 +1872,7 @@
       const report = buildDataQualityReport(rows);
       const categories = [
         ["Missing divisions", report.counts.missingDivision],
+        ["Unknown divisions", report.counts.unknownDivision],
         ["Blank activity titles", report.counts.blankActivityTitle],
         ["Missing travel dates", report.counts.missingTravelDates],
         ["Leave duration issues", report.counts.leaveDurationIssue],
@@ -1904,6 +1922,7 @@
       const issues = [];
       const counts = {
         missingDivision: 0,
+        unknownDivision: 0,
         blankActivityTitle: 0,
         missingTravelDates: 0,
         leaveDurationIssue: 0,
@@ -1926,6 +1945,11 @@
         if (!cleanText(row.division) || row.division === "Unspecified") {
           counts.missingDivision += 1;
           issues.push({ type: "Missing division", record, division, detail: "Division is blank or unspecified." });
+        }
+
+        if (cleanText(row.division) && row.division !== "Unspecified" && !isKnownDivision(row.division)) {
+          counts.unknownDivision += 1;
+          issues.push({ type: "Unknown division", record, division, detail: `"${row.division}" is not in the official NCA division list.` });
         }
 
         if (!row.activities.length) {
@@ -2890,6 +2914,21 @@
 
     function unique(values) {
       return [...new Set(values.map(cleanText).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    }
+
+    function canonicalDivision(value) {
+      const text = cleanText(value);
+      if (!text) return "Unspecified";
+      const match = KNOWN_DIVISIONS.find(division => divisionKey(division) === divisionKey(text));
+      return match || text;
+    }
+
+    function isKnownDivision(value) {
+      return KNOWN_DIVISIONS.some(division => divisionKey(division) === divisionKey(value));
+    }
+
+    function divisionKey(value) {
+      return cleanText(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
     }
 
     function cleanText(value) {
