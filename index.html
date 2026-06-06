@@ -223,6 +223,33 @@
       max-width: 920px;
     }
 
+    .ask-panel {
+      margin-bottom: 26px;
+      padding: 20px 24px;
+    }
+
+    .ask-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .ask-answer {
+      margin-top: 14px;
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      color: #304158;
+      padding: 14px 16px;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .ask-answer strong {
+      color: var(--nca-blue-deep);
+    }
+
     .executive-summary {
       margin-bottom: 26px;
       padding: 24px 28px;
@@ -615,6 +642,10 @@
         grid-template-columns: 1fr;
       }
 
+      .ask-row {
+        grid-template-columns: 1fr;
+      }
+
       .button {
         width: 100%;
       }
@@ -745,6 +776,21 @@
         <option value="">All Designations</option>
       </select>
       <input id="searchInput" type="search" placeholder="Search name, activity, travel, leave" aria-label="Search records">
+    </section>
+
+    <section class="toolbar ask-panel" aria-label="Ask the Dashboard">
+      <div>
+        <div class="upload-title">Ask the Dashboard</div>
+        <div class="upload-hint">Examples: Which division had the most foreign travel? Show completed activities. Who took annual leave? Summarize RIPS.</div>
+      </div>
+      <div class="ask-row">
+        <input id="askInput" type="search" placeholder="Ask a question about the current data" aria-label="Ask the dashboard">
+        <button class="button" id="askBtn" type="button" title="Ask the dashboard">
+          <span aria-hidden="true">?</span>
+          Ask
+        </button>
+      </div>
+      <div class="ask-answer" id="askAnswer">Upload or fetch data, then ask a question.</div>
     </section>
 
     <section class="grid">
@@ -906,6 +952,9 @@
       divisionFilter: document.getElementById("divisionFilter"),
       designationFilter: document.getElementById("designationFilter"),
       searchInput: document.getElementById("searchInput"),
+      askInput: document.getElementById("askInput"),
+      askBtn: document.getElementById("askBtn"),
+      askAnswer: document.getElementById("askAnswer"),
       totalSubmissions: document.getElementById("totalSubmissions"),
       divisionCount: document.getElementById("divisionCount"),
       activityCount: document.getElementById("activityCount"),
@@ -939,6 +988,10 @@
     els.divisionFilter.addEventListener("change", applyFilters);
     els.designationFilter.addEventListener("change", applyFilters);
     els.searchInput.addEventListener("input", applyFilters);
+    els.askBtn.addEventListener("click", askDashboard);
+    els.askInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") askDashboard();
+    });
     document.querySelectorAll("[data-summary-action]").forEach(button => {
       button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
     });
@@ -1538,6 +1591,104 @@
       }[action];
       const target = targetId ? document.getElementById(targetId) : null;
       if (target) target.closest(".chart-panel").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function askDashboard() {
+      const question = cleanText(els.askInput.value);
+      if (!state.submissions.length) {
+        setAskAnswer("Upload an Excel file or fetch online Excel data first, then ask your question.");
+        return;
+      }
+      if (!question) {
+        setAskAnswer("Type a question such as \"Which division had the most foreign travel?\" or \"Summarize RIPS\".");
+        return;
+      }
+
+      const answer = answerDashboardQuestion(question);
+      setAskAnswer(answer);
+    }
+
+    function answerDashboardQuestion(question) {
+      const q = question.toLowerCase();
+      const rows = state.filtered.length ? state.filtered : state.submissions;
+      const activityRows = rows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
+      const travelRows = rows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
+      const leaveRows = rows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
+
+      if (q.includes("foreign travel") && (q.includes("most") || q.includes("highest") || q.includes("top"))) {
+        const byDivision = travelRows.reduce((acc, row) => {
+          const division = row.parent.division || "Unspecified";
+          acc[division] = (acc[division] || 0) + 1;
+          return acc;
+        }, {});
+        const leader = topEntry(byDivision);
+        if (!leader) return "No foreign travel records are available in the current view.";
+        setFilter(els.divisionFilter, leader[0]);
+        return `<strong>${escapeHtml(leader[0])}</strong> had the most foreign travel records, with <strong>${leader[1]}</strong> record${leader[1] === 1 ? "" : "s"}. I filtered the dashboard to that division.`;
+      }
+
+      if (q.includes("completed") && q.includes("activ")) {
+        setSearch("Completed");
+        const completed = activityRows.filter(row => normalize(row.status).includes("complete"));
+        return `There ${completed.length === 1 ? "is" : "are"} <strong>${completed.length}</strong> completed activit${completed.length === 1 ? "y" : "ies"} in the current view. I filtered the dashboard to completed activities.`;
+      }
+
+      if (q.includes("annual leave") || (q.includes("who") && q.includes("leave"))) {
+        const leaveType = q.includes("annual") ? "annual leave" : "";
+        const matches = leaveRows.filter(row => !leaveType || normalize(row.type).includes(leaveType));
+        const names = unique(matches.map(row => row.parent.name)).slice(0, 8);
+        if (leaveType) setSearch("Annual Leave");
+        if (!matches.length) return leaveType ? "No annual leave records are available in the current view." : "No leave records are available in the current view.";
+        const extra = unique(matches.map(row => row.parent.name)).length > names.length ? " and others" : "";
+        return `<strong>${matches.length}</strong> ${leaveType ? "annual leave" : "leave"} record${matches.length === 1 ? "" : "s"} found. Staff captured: <strong>${escapeHtml(names.join(", "))}${extra}</strong>.${leaveType ? " I filtered the dashboard to annual leave." : ""}`;
+      }
+
+      const division = findDivisionInQuestion(q);
+      if (q.includes("summarize") && division) {
+        setFilter(els.divisionFilter, division);
+        const divisionRows = state.submissions.filter(row => normalize(row.division) === normalize(division));
+        return summarizeDivision(division, divisionRows);
+      }
+
+      if ((q.includes("most active") || q.includes("active division")) && q.includes("division")) {
+        const activityByDivision = activityRows.reduce((acc, row) => {
+          const divisionName = row.parent.division || "Unspecified";
+          acc[divisionName] = (acc[divisionName] || 0) + 1;
+          return acc;
+        }, {});
+        const leader = topEntry(activityByDivision);
+        if (!leader) return "No activity records are available in the current view.";
+        setFilter(els.divisionFilter, leader[0]);
+        return `<strong>${escapeHtml(leader[0])}</strong> is the most active division by activity volume, with <strong>${leader[1]}</strong> activit${leader[1] === 1 ? "y" : "ies"}. I filtered the dashboard to that division.`;
+      }
+
+      if (q.includes("data completeness") || q.includes("missing")) {
+        const completeness = dataCompleteness(rows);
+        return completeness.missingCount
+          ? `Data completeness check found <strong>${completeness.missingCount}</strong> issue${completeness.missingCount === 1 ? "" : "s"}: ${escapeHtml(completeness.summary)}`
+          : "Data completeness check found no core missing-field issues in the current view.";
+      }
+
+      return "I can answer questions about top travel divisions, completed activities, annual leave, division summaries, most active divisions, and data completeness. Try: \"Summarize RIPS\".";
+    }
+
+    function findDivisionInQuestion(question) {
+      return unique(state.submissions.map(row => row.division)).find(division => question.includes(division.toLowerCase()));
+    }
+
+    function summarizeDivision(division, rows) {
+      if (!rows.length) return `No records are available for ${escapeHtml(division)}.`;
+      const activities = rows.flatMap(row => row.activities);
+      const travels = rows.flatMap(row => row.travels);
+      const leaves = rows.flatMap(row => row.leaves);
+      const status = topEntry(counts(activities.map(row => row.status)));
+      const travel = topEntry(counts(travels.map(row => row.destination)));
+      const leaveDays = leaves.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      return `<strong>${escapeHtml(division)}</strong> has <strong>${rows.length}</strong> submission${rows.length === 1 ? "" : "s"}, <strong>${activities.length}</strong> activit${activities.length === 1 ? "y" : "ies"}, <strong>${travels.length}</strong> foreign travel record${travels.length === 1 ? "" : "s"}, and <strong>${leaves.length}</strong> leave record${leaves.length === 1 ? "" : "s"}. ${status ? `The leading activity status is <strong>${escapeHtml(status[0])}</strong>. ` : ""}${travel ? `Top travel destination is <strong>${escapeHtml(travel[0])}</strong>. ` : ""}${leaves.length ? `Leave totals about <strong>${formatDays(leaveDays)}</strong>.` : ""}`;
+    }
+
+    function setAskAnswer(html) {
+      els.askAnswer.innerHTML = html;
     }
 
     function updateSummaryActiveState() {
