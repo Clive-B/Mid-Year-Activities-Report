@@ -1,0 +1,2708 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NCA Mid-Year Activity Report Dashboard - 2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --nca-blue: #0b3a78;
+      --nca-blue-deep: #06295c;
+      --nca-gold: #f6bd19;
+      --nca-red: #cf1f32;
+      --nca-green: #149052;
+      --ink: #182234;
+      --muted: #66758d;
+      --line: #dce6f2;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: rgba(255, 255, 255, 0.97);
+      --shadow: 0 18px 45px rgba(7, 32, 66, 0.11);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef4fb;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(rgba(245, 249, 253, 0.48), rgba(245, 249, 253, 0.7)),
+        url("images.jpg") center 140px / min(980px, 96vw) auto no-repeat;
+      filter: saturate(0.82) contrast(1.05);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(246, 189, 25, 0.16), transparent 24%),
+        linear-gradient(90deg, rgba(255,255,255,0.76), rgba(255,255,255,0.24), rgba(255,255,255,0.76));
+      pointer-events: none;
+    }
+
+    .top-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 168px;
+      padding: 24px;
+      background: rgba(246, 249, 253, 0.78);
+    }
+
+    .top-logo img {
+      width: min(420px, 76vw);
+      height: auto;
+      object-fit: contain;
+    }
+
+    .hero {
+      border-bottom: 6px solid var(--nca-gold);
+      background: linear-gradient(120deg, var(--nca-blue-deep), var(--nca-blue));
+      color: white;
+      padding: 38px clamp(24px, 4vw, 64px);
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 1040px;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: clamp(16px, 1.8vw, 22px);
+      line-height: 1.45;
+    }
+
+    main {
+      padding: 34px clamp(18px, 3vw, 56px) 48px;
+    }
+
+    .toolbar,
+    .card,
+    .chart-panel,
+    .table-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(5px);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 28px;
+      padding: 22px 26px;
+    }
+
+    .upload-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1e2a3c;
+    }
+
+    .upload-hint,
+    .file-state,
+    .small-note {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input[type="file"],
+    select,
+    input[type="search"] {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: #1d2737;
+      font: inherit;
+      padding: 0 14px;
+      outline: none;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 20px;
+      color: white;
+      background: var(--nca-blue);
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px rgba(11, 58, 120, 0.22);
+      background: var(--nca-blue-deep);
+    }
+
+    .button.secondary {
+      background: var(--nca-red);
+    }
+
+    .button.ghost {
+      color: var(--nca-blue);
+      background: #edf4fc;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .card {
+      min-height: 126px;
+      padding: 22px 24px;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 18px 36px rgba(11, 58, 120, 0.16);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .value {
+      margin-top: 16px;
+      color: var(--nca-blue-deep);
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) minmax(150px, 220px) minmax(220px, 1fr);
+      gap: 14px;
+      margin-bottom: 26px;
+      max-width: 920px;
+    }
+
+    .ask-panel {
+      margin-bottom: 26px;
+      padding: 20px 24px;
+    }
+
+    .ask-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .ask-answer {
+      margin-top: 14px;
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      color: #304158;
+      padding: 14px 16px;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .ask-answer strong {
+      color: var(--nca-blue-deep);
+    }
+
+    .presentation-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      grid-template-rows: auto 1fr auto;
+      background:
+        linear-gradient(rgba(246, 249, 253, 0.88), rgba(246, 249, 253, 0.94)),
+        url("images.jpg") center / cover no-repeat;
+      color: var(--ink);
+    }
+
+    .presentation-shell.is-open {
+      display: grid;
+    }
+
+    .presentation-top,
+    .presentation-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .presentation-bottom {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .presentation-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--nca-blue-deep);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .presentation-brand img {
+      width: 96px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .presentation-stage {
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      padding: 34px;
+    }
+
+    .presentation-slide {
+      width: min(1180px, 94vw);
+      min-height: min(680px, 74vh);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 28px 70px rgba(7, 32, 66, 0.18);
+      padding: clamp(24px, 4vw, 52px);
+    }
+
+    .presentation-slide h2 {
+      margin: 0 0 18px;
+      color: var(--nca-blue-deep);
+      font-size: clamp(30px, 4vw, 48px);
+      letter-spacing: 0;
+    }
+
+    .presentation-slide p {
+      color: #304158;
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .presentation-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .presentation-metric {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      padding: 18px;
+    }
+
+    .presentation-metric span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .presentation-metric strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--nca-blue-deep);
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .presentation-chart {
+      margin-top: 18px;
+      min-height: 360px;
+    }
+
+    .presentation-count {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .presentation-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .executive-summary {
+      margin-bottom: 26px;
+      padding: 24px 28px;
+      border-left: 6px solid var(--nca-gold);
+    }
+
+    .executive-summary h2 {
+      margin: 0 0 12px;
+      color: var(--nca-blue-deep);
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .executive-summary p {
+      margin: 0;
+      color: #304158;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .summary-highlights {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .summary-chip {
+      min-height: 78px;
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 14px 16px;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .summary-chip:hover,
+    .summary-chip:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 12px 24px rgba(11, 58, 120, 0.14);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .summary-chip.is-active {
+      border-color: var(--nca-blue);
+      background: rgba(236, 244, 253, 0.92);
+    }
+
+    .summary-chip span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .summary-chip strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--nca-blue-deep);
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .auto-brief {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .brief-item {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      padding: 16px;
+    }
+
+    .brief-item span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .brief-item p {
+      margin: 0;
+      color: #304158;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .insight-cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .insight-card {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 16px;
+      min-height: 128px;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .insight-card:hover {
+      border-color: var(--nca-gold);
+      box-shadow: 0 12px 24px rgba(11, 58, 120, 0.13);
+      transform: translateY(-1px);
+    }
+
+    .insight-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .insight-card strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--nca-blue-deep);
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .insight-card p {
+      margin: 10px 0 0;
+      color: #3a4b63;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .insight-card.risk {
+      border-left: 5px solid var(--nca-red);
+    }
+
+    .insight-card.watch {
+      border-left: 5px solid var(--nca-gold);
+    }
+
+    .insight-card.good {
+      border-left: 5px solid var(--nca-green);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 26px;
+      margin-bottom: 26px;
+    }
+
+    .chart-panel,
+    .table-panel {
+      min-height: 360px;
+      padding: 24px;
+    }
+
+    .chart-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .chart-panel h2,
+    .table-panel h2 {
+      margin: 0;
+      color: var(--nca-blue-deep);
+      font-size: 23px;
+      letter-spacing: 0;
+    }
+
+    .table-panel h2 {
+      margin-bottom: 18px;
+    }
+
+    .chart-tools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .chart-type {
+      width: 142px;
+      min-height: 38px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 10px;
+    }
+
+    .icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--nca-blue);
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .icon-button:hover,
+    .icon-button:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 10px 20px rgba(11, 58, 120, 0.12);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .chart {
+      width: 100%;
+      min-height: 280px;
+    }
+
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 17px;
+    }
+
+    .records-wrap {
+      overflow: auto;
+      max-height: 520px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.82);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1060px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e8eef6;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: white;
+      background: var(--nca-blue);
+      font-weight: 800;
+    }
+
+    tbody tr:hover {
+      background: rgba(246, 189, 25, 0.12);
+      cursor: pointer;
+    }
+
+    .detail-row td {
+      background: rgba(245, 249, 253, 0.94);
+      cursor: default;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .detail-box {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: white;
+      padding: 14px;
+    }
+
+    .detail-box h3 {
+      margin: 0 0 10px;
+      color: var(--nca-blue-deep);
+      font-size: 15px;
+    }
+
+    .detail-box p {
+      margin: 0 0 8px;
+      color: #34445c;
+      line-height: 1.45;
+    }
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 3px 10px;
+      background: #eaf2fb;
+      color: var(--nca-blue);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .pill.done {
+      background: rgba(20, 144, 82, 0.13);
+      color: #0d6b3b;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .toolbar {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .summary-highlights {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .auto-brief {
+        grid-template-columns: 1fr;
+      }
+
+      .insight-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-head {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-tools {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .top-logo {
+        min-height: 120px;
+      }
+
+      .toolbar,
+      .filters,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-highlights {
+        grid-template-columns: 1fr;
+      }
+
+      .insight-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .ask-row {
+        grid-template-columns: 1fr;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .presentation-top,
+      .presentation-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .presentation-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body::before,
+      body::after {
+        opacity: 0.35;
+      }
+
+      .toolbar,
+      .filters,
+      .button,
+      .chart-tools {
+        display: none !important;
+      }
+
+      main {
+        padding: 18px;
+      }
+
+      .chart-panel,
+      .table-panel,
+      .card {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-logo">
+      <img src="IMG-20260305-WA0016-removebg-preview(2).png" alt="National Communications Authority 30 years logo">
+    </div>
+    <section class="hero">
+      <h1>NCA Mid-Year Activity Report Dashboard - 2026</h1>
+      <p>Interactive dashboard for Microsoft Forms / Excel responses covering activities, foreign travels and leave records.</p>
+    </section>
+  </header>
+
+  <main>
+    <section class="toolbar" aria-label="Upload controls">
+      <div>
+        <div class="upload-title">Upload Microsoft Forms Excel file</div>
+        <div class="upload-hint">Accepted formats: .xlsx, .xls, .csv</div>
+      </div>
+      <label class="button ghost" for="fileInput" title="Upload workbook">
+        <span aria-hidden="true">&uarr;</span>
+        Choose File
+      </label>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv">
+      <button class="button" id="fetchOnlineBtn" type="button" title="Fetch latest online Excel data from Power Automate">
+        <span aria-hidden="true">&#8635;</span>
+        Fetch Online Excel
+      </button>
+      <button class="button ghost" id="endpointBtn" type="button" title="Set or change Power Automate endpoint">
+        <span aria-hidden="true">&#9881;</span>
+        Endpoint
+      </button>
+      <button class="button" id="printBtn" type="button" title="Print or save dashboard as PDF">
+        <span aria-hidden="true">&#9635;</span>
+        Print / Save as PDF
+      </button>
+      <button class="button ghost" id="presentationBtn" type="button" title="Open full-screen presentation mode">
+        <span aria-hidden="true">&#9658;</span>
+        Presentation
+      </button>
+      <button class="button secondary" id="resetBtn" type="button" title="Clear uploaded data and filters">
+        <span aria-hidden="true">&#8634;</span>
+        Reset
+      </button>
+      <div class="file-state" id="fileState">No file loaded.</div>
+    </section>
+
+    <section class="stats" aria-label="Dashboard summary">
+      <article class="card" tabindex="0" role="button" data-kpi-action="all">
+        <div class="label">Total Submissions</div>
+        <div class="value" id="totalSubmissions">0</div>
+      </article>
+      <article class="card" tabindex="0" role="button" data-kpi-action="divisions">
+        <div class="label">Divisions</div>
+        <div class="value" id="divisionCount">0</div>
+      </article>
+      <article class="card" tabindex="0" role="button" data-kpi-action="activities">
+        <div class="label">Activities</div>
+        <div class="value" id="activityCount">0</div>
+      </article>
+      <article class="card" tabindex="0" role="button" data-kpi-action="travels">
+        <div class="label">Foreign Travels</div>
+        <div class="value" id="travelCount">0</div>
+      </article>
+      <article class="card" tabindex="0" role="button" data-kpi-action="leaves">
+        <div class="label">Leave Records</div>
+        <div class="value" id="leaveCount">0</div>
+      </article>
+    </section>
+
+    <section class="toolbar executive-summary" aria-label="Executive summary">
+      <div>
+        <h2>Executive Summary</h2>
+        <p id="summaryNarrative">Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.</p>
+        <div class="summary-highlights">
+          <button class="summary-chip" type="button" data-summary-action="division">
+            <span>Top Division</span>
+            <strong id="summaryTopDivision">-</strong>
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="status">
+            <span>Activity Status</span>
+            <strong id="summaryTopStatus">-</strong>
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="travel">
+            <span>Top Travel</span>
+            <strong id="summaryTopTravel">-</strong>
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="leave">
+            <span>Leave Leader</span>
+            <strong id="summaryLeaveLeader">-</strong>
+          </button>
+        </div>
+        <div class="auto-brief" id="autoExecutiveBrief" aria-label="Auto executive brief"></div>
+        <div class="insight-cards" id="smartInsightCards" aria-label="Smart insight cards"></div>
+      </div>
+    </section>
+
+    <section class="filters" aria-label="Dashboard filters">
+      <select id="divisionFilter" aria-label="Filter by division">
+        <option value="">All Divisions</option>
+      </select>
+      <select id="designationFilter" aria-label="Filter by designation">
+        <option value="">All Designations</option>
+      </select>
+      <input id="searchInput" type="search" placeholder="Search name, activity, travel, leave" aria-label="Search records">
+    </section>
+
+    <section class="toolbar ask-panel" aria-label="Ask the Dashboard">
+      <div>
+        <div class="upload-title">Ask the Dashboard</div>
+        <div class="upload-hint">Examples: Which division had the most foreign travel? Show completed activities. Who took annual leave? Summarize RIPS.</div>
+      </div>
+      <div class="ask-row">
+        <input id="askInput" type="search" placeholder="Ask a question about the current data" aria-label="Ask the dashboard">
+        <button class="button" id="askBtn" type="button" title="Ask the dashboard">
+          <span aria-hidden="true">?</span>
+          Ask
+        </button>
+      </div>
+      <div class="ask-answer" id="askAnswer">Upload or fetch data, then ask a question.</div>
+    </section>
+
+    <section class="grid">
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Submissions by Division</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="divisionChart" aria-label="Submissions by Division chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="divisionChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="divisionChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Leave by Type</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="leaveChart" aria-label="Leave by Type chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="leaveChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="leaveChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Foreign Travel by Destination</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="travelChart" aria-label="Foreign Travel by Destination chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="travelChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="travelChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Activity Status / Count</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="statusChart" aria-label="Activity Status chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="statusChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="statusChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Activities by Month</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="activityMonthChart" aria-label="Activities by Month chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="line">Line</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="activityMonthChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="activityMonthChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Foreign Travel by Event Type</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="travelEventChart" aria-label="Foreign Travel by Event Type chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="travelEventChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="travelEventChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Leave Days by Division</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="leaveDaysChart" aria-label="Leave Days by Division chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="leaveDaysChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="leaveDaysChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Division Activity Mix</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="divisionMixChart" aria-label="Division Activity Mix chart type">
+              <option value="stacked-bar">Stacked Bar</option>
+              <option value="stacked-column">Stacked Column</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="divisionMixChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="divisionMixChart"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Description Keywords</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="descriptionChart" aria-label="Description Keywords chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="descriptionChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="descriptionChart"></div>
+      </article>
+    </section>
+
+    <section class="table-panel">
+      <h2>Detailed Submission Records</h2>
+      <div class="records-wrap" id="tableWrap">
+        <div class="empty">Upload an Excel workbook to populate the dashboard.</div>
+      </div>
+      <div class="small-note" id="recordNote"></div>
+    </section>
+
+    <div class="footer">Generated dashboard template for NCA/RIPS Mid-Year Activity Report workflow.</div>
+  </main>
+
+  <section class="presentation-shell" id="presentationShell" aria-label="Presentation mode" aria-hidden="true">
+    <div class="presentation-top">
+      <div class="presentation-brand">
+        <img src="IMG-20260305-WA0016-removebg-preview(2).png" alt="NCA logo">
+        <span>NCA Mid-Year Activity Report Dashboard</span>
+      </div>
+      <div class="presentation-controls">
+        <button class="button ghost" id="presentationDownloadBtn" type="button">Download Chart</button>
+        <button class="button secondary" id="presentationExitBtn" type="button">Exit</button>
+      </div>
+    </div>
+    <div class="presentation-stage">
+      <article class="presentation-slide" id="presentationSlide"></article>
+    </div>
+    <div class="presentation-bottom">
+      <span class="presentation-count" id="presentationCount">Slide 0 of 0</span>
+      <div class="presentation-controls">
+        <button class="button ghost" id="presentationPrevBtn" type="button">Previous</button>
+        <button class="button" id="presentationNextBtn" type="button">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const state = {
+      submissions: [],
+      filtered: [],
+      fileName: "",
+      summaryActions: {},
+      expandedRowId: "",
+      chartTypes: {},
+      onlineEndpoint: localStorage.getItem("ncaDashboardEndpoint") || "",
+      presentationIndex: 0,
+      presentationSlides: []
+    };
+
+    const els = {
+      fileInput: document.getElementById("fileInput"),
+      fileState: document.getElementById("fileState"),
+      fetchOnlineBtn: document.getElementById("fetchOnlineBtn"),
+      endpointBtn: document.getElementById("endpointBtn"),
+      printBtn: document.getElementById("printBtn"),
+      presentationBtn: document.getElementById("presentationBtn"),
+      presentationShell: document.getElementById("presentationShell"),
+      presentationSlide: document.getElementById("presentationSlide"),
+      presentationCount: document.getElementById("presentationCount"),
+      presentationPrevBtn: document.getElementById("presentationPrevBtn"),
+      presentationNextBtn: document.getElementById("presentationNextBtn"),
+      presentationExitBtn: document.getElementById("presentationExitBtn"),
+      presentationDownloadBtn: document.getElementById("presentationDownloadBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      divisionFilter: document.getElementById("divisionFilter"),
+      designationFilter: document.getElementById("designationFilter"),
+      searchInput: document.getElementById("searchInput"),
+      askInput: document.getElementById("askInput"),
+      askBtn: document.getElementById("askBtn"),
+      askAnswer: document.getElementById("askAnswer"),
+      totalSubmissions: document.getElementById("totalSubmissions"),
+      divisionCount: document.getElementById("divisionCount"),
+      activityCount: document.getElementById("activityCount"),
+      travelCount: document.getElementById("travelCount"),
+      leaveCount: document.getElementById("leaveCount"),
+      divisionChart: document.getElementById("divisionChart"),
+      leaveChart: document.getElementById("leaveChart"),
+      travelChart: document.getElementById("travelChart"),
+      statusChart: document.getElementById("statusChart"),
+      activityMonthChart: document.getElementById("activityMonthChart"),
+      travelEventChart: document.getElementById("travelEventChart"),
+      leaveDaysChart: document.getElementById("leaveDaysChart"),
+      divisionMixChart: document.getElementById("divisionMixChart"),
+      descriptionChart: document.getElementById("descriptionChart"),
+      summaryNarrative: document.getElementById("summaryNarrative"),
+      summaryTopDivision: document.getElementById("summaryTopDivision"),
+      summaryTopStatus: document.getElementById("summaryTopStatus"),
+      summaryTopTravel: document.getElementById("summaryTopTravel"),
+      summaryLeaveLeader: document.getElementById("summaryLeaveLeader"),
+      autoExecutiveBrief: document.getElementById("autoExecutiveBrief"),
+      smartInsightCards: document.getElementById("smartInsightCards"),
+      tableWrap: document.getElementById("tableWrap"),
+      recordNote: document.getElementById("recordNote")
+    };
+
+    els.fileInput.addEventListener("change", handleFileUpload);
+    els.fetchOnlineBtn.addEventListener("click", fetchOnlineData);
+    els.endpointBtn.addEventListener("click", configureEndpoint);
+    els.printBtn.addEventListener("click", () => window.print());
+    els.presentationBtn.addEventListener("click", openPresentationMode);
+    els.presentationPrevBtn.addEventListener("click", () => movePresentation(-1));
+    els.presentationNextBtn.addEventListener("click", () => movePresentation(1));
+    els.presentationExitBtn.addEventListener("click", closePresentationMode);
+    els.presentationDownloadBtn.addEventListener("click", downloadPresentationChart);
+    els.resetBtn.addEventListener("click", resetDashboard);
+    els.divisionFilter.addEventListener("change", applyFilters);
+    els.designationFilter.addEventListener("change", applyFilters);
+    els.searchInput.addEventListener("input", applyFilters);
+    els.askBtn.addEventListener("click", askDashboard);
+    els.askInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") askDashboard();
+    });
+    document.querySelectorAll("[data-summary-action]").forEach(button => {
+      button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
+    });
+    document.querySelectorAll("[data-kpi-action]").forEach(card => {
+      card.addEventListener("click", () => handleKpiAction(card.dataset.kpiAction));
+      card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleKpiAction(card.dataset.kpiAction);
+        }
+      });
+    });
+    document.querySelectorAll("[data-chart-type]").forEach(select => {
+      state.chartTypes[select.dataset.chartType] = select.value;
+      select.addEventListener("change", () => {
+        state.chartTypes[select.dataset.chartType] = select.value;
+        render();
+      });
+    });
+    document.querySelectorAll("[data-download-chart]").forEach(button => {
+      button.addEventListener("click", () => downloadChart(button.dataset.downloadChart));
+    });
+    document.addEventListener("keydown", event => {
+      if (!els.presentationShell.classList.contains("is-open")) return;
+      if (event.key === "Escape") closePresentationMode();
+      if (event.key === "ArrowLeft") movePresentation(-1);
+      if (event.key === "ArrowRight") movePresentation(1);
+    });
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.fileName = file.name;
+      els.fileState.textContent = `Loading ${file.name}...`;
+
+      if (!window.XLSX) {
+        els.fileState.textContent = "Excel parser could not load. Check internet access, then reload this page.";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: "array", cellDates: false });
+          const firstSheet = workbook.SheetNames[0];
+          const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "" });
+          state.submissions = parseRows(rows);
+          populateFilters();
+          try {
+            applyFilters();
+            els.fileState.textContent = `${file.name} loaded. ${state.submissions.length} submissions found.`;
+          } catch (renderError) {
+            els.fileState.textContent = `File loaded, but the dashboard could not render charts: ${renderError.message}`;
+          }
+        } catch (error) {
+          els.fileState.textContent = `Could not read file: ${error.message}`;
+          resetDataOnly();
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function fetchOnlineData() {
+      const endpoint = state.onlineEndpoint || configureEndpoint();
+      if (!endpoint) {
+        els.fileState.textContent = "Online endpoint not configured.";
+        return;
+      }
+
+      els.fetchOnlineBtn.disabled = true;
+      els.fileState.textContent = "Fetching latest online Excel data...";
+
+      try {
+        const response = await fetch(endpoint, { method: "POST", cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        const rows = normalizeOnlinePayload(payload);
+        state.fileName = "Power Automate online Excel feed";
+        state.submissions = parseJsonRows(rows);
+        populateFilters();
+        applyFilters();
+        const generatedAt = payload && payload.generatedAt ? ` Generated: ${formatFeedTime(payload.generatedAt)}.` : "";
+        els.fileState.textContent = `Online Excel data loaded. ${state.submissions.length} submissions found.${generatedAt}`;
+      } catch (error) {
+        els.fileState.textContent = `Could not fetch online Excel data: ${error.message}`;
+      } finally {
+        els.fetchOnlineBtn.disabled = false;
+      }
+    }
+
+    function configureEndpoint() {
+      const value = prompt("Paste the Power Automate HTTP URL for the dashboard JSON endpoint:", state.onlineEndpoint || "");
+      if (value === null) return state.onlineEndpoint;
+      const cleaned = value.trim();
+      state.onlineEndpoint = cleaned;
+      if (cleaned) {
+        localStorage.setItem("ncaDashboardEndpoint", cleaned);
+        els.fileState.textContent = "Online endpoint saved in this browser.";
+      } else {
+        localStorage.removeItem("ncaDashboardEndpoint");
+        els.fileState.textContent = "Online endpoint cleared.";
+      }
+      return cleaned;
+    }
+
+    function normalizeOnlinePayload(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (payload && Array.isArray(payload.rows)) return payload.rows;
+      if (payload && Array.isArray(payload.value)) return payload.value;
+      throw new Error("JSON response does not contain rows.");
+    }
+
+    function parseJsonRows(rows) {
+      return rows
+        .filter(row => row && Object.values(row).some(value => cleanText(value)))
+        .map((row, index) => {
+          const headers = Object.keys(row);
+          const values = headers.map(header => row[header]);
+          const get = (label) => {
+            const key = headers.find(header => normalize(header) === normalize(label));
+            return key ? cleanText(row[key]) : "";
+          };
+
+          const base = {
+            rowId: get("Id") || String(index + 1),
+            name: get("Full Name") || get("Name") || "Unnamed",
+            email: get("Email"),
+            division: get("Division") || "Unspecified",
+            designation: get("Designation") || "Unspecified",
+            startTime: formatExcelDate(get("Start time")),
+            completionTime: formatExcelDate(get("Completion time")),
+            activities: extractGroups(values, headers, "Activity Title", ["Brief Description", "Period/Date", "Status"], makeActivity),
+            travels: extractGroups(values, headers, "Destination Country", ["Start Date", "End Date", "Duration", "Purpose/Event", "Event Type", "Specify if other", "Sponsoring Organization"], makeTravel),
+            leaves: extractGroups(values, headers, "Leave Type", ["Start Date", "End Date", "Duration", "Remarks"], makeLeave)
+          };
+          base.searchText = buildSearchText(base);
+          return base;
+        });
+    }
+
+    function parseRows(rows) {
+      if (!rows.length) return [];
+      const headers = rows[0].map(cleanText);
+      return rows.slice(1)
+        .filter(row => row.some(cell => cleanText(cell)))
+        .map((row, index) => {
+          const get = (label) => {
+            const idx = headers.findIndex(h => normalize(h) === normalize(label));
+            return idx >= 0 ? cleanText(row[idx]) : "";
+          };
+
+          const base = {
+            rowId: get("Id") || String(index + 1),
+            name: get("Full Name") || get("Name") || "Unnamed",
+            email: get("Email"),
+            division: get("Division") || "Unspecified",
+            designation: get("Designation") || "Unspecified",
+            startTime: formatExcelDate(get("Start time")),
+            completionTime: formatExcelDate(get("Completion time")),
+            activities: extractGroups(row, headers, "Activity Title", ["Brief Description", "Period/Date", "Status"], makeActivity),
+            travels: extractGroups(row, headers, "Destination Country", ["Start Date", "End Date", "Duration", "Purpose/Event", "Event Type", "Specify if other", "Sponsoring Organization"], makeTravel),
+            leaves: extractGroups(row, headers, "Leave Type", ["Start Date", "End Date", "Duration", "Remarks"], makeLeave)
+          };
+          base.searchText = buildSearchText(base);
+          return base;
+        });
+    }
+
+    function buildSearchText(base) {
+      return [
+        base.name, base.email, base.division, base.designation,
+        ...base.activities.flatMap(a => [a.title, a.description, a.period, monthLabel(a.periodRaw), a.status]),
+        ...base.travels.flatMap(t => [t.destination, t.start, t.end, t.duration, t.purpose, t.eventType, t.sponsor]),
+        ...base.leaves.flatMap(l => [l.type, l.start, l.end, l.duration, l.remarks])
+      ].join(" ").toLowerCase();
+    }
+
+    function extractGroups(row, headers, anchor, fields, mapper) {
+      const groups = [];
+      headers.forEach((header, idx) => {
+        if (!normalize(header).startsWith(normalize(anchor))) return;
+        const anchorValue = cleanText(row[idx]);
+        if (!anchorValue || isNo(anchorValue)) return;
+
+        const nextAnchor = headers.findIndex((h, i) => i > idx && normalize(h).startsWith(normalize(anchor)));
+        const limit = nextAnchor > idx ? nextAnchor : headers.length;
+        const values = { [anchor]: anchorValue };
+
+        fields.forEach(field => {
+          const fieldIdx = headers.findIndex((h, i) => i > idx && i < limit && normalize(h).startsWith(normalize(field)));
+          values[field] = fieldIdx >= 0 ? cleanText(row[fieldIdx]) : "";
+        });
+
+        const mapped = mapper(values);
+        if (mapped) groups.push(mapped);
+      });
+      return groups;
+    }
+
+    function makeActivity(values) {
+      const rawPeriod = values["Period/Date"];
+      return {
+        title: values["Activity Title"],
+        description: values["Brief Description"],
+        period: formatExcelDate(rawPeriod),
+        periodRaw: rawPeriod,
+        status: values["Status"] || "Not stated"
+      };
+    }
+
+    function makeTravel(values) {
+      const rawStart = values["Start Date"];
+      const rawEnd = values["End Date"];
+      return {
+        destination: values["Destination Country"],
+        start: formatExcelDate(rawStart),
+        startRaw: rawStart,
+        end: formatExcelDate(rawEnd),
+        endRaw: rawEnd,
+        duration: values["Duration"],
+        purpose: values["Purpose/Event"],
+        eventType: values["Event Type"] || values["Specify if other"] || "Not stated",
+        sponsor: values["Sponsoring Organization"]
+      };
+    }
+
+    function makeLeave(values) {
+      const rawStart = values["Start Date"];
+      const rawEnd = values["End Date"];
+      return {
+        type: values["Leave Type"],
+        start: formatExcelDate(rawStart),
+        startRaw: rawStart,
+        end: formatExcelDate(rawEnd),
+        endRaw: rawEnd,
+        duration: values["Duration"],
+        days: parseDurationDays(values["Duration"], rawStart, rawEnd),
+        remarks: values["Remarks"]
+      };
+    }
+
+    function populateFilters() {
+      setOptions(els.divisionFilter, "All Divisions", unique(state.submissions.map(s => s.division)));
+      setOptions(els.designationFilter, "All Designations", unique(state.submissions.map(s => s.designation)));
+    }
+
+    function setOptions(select, label, options) {
+      const current = select.value;
+      select.innerHTML = `<option value="">${escapeHtml(label)}</option>` +
+        options.map(option => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("");
+      if (options.includes(current)) select.value = current;
+    }
+
+    function applyFilters() {
+      const division = els.divisionFilter.value;
+      const designation = els.designationFilter.value;
+      const query = els.searchInput.value.trim().toLowerCase();
+
+      state.filtered = state.submissions.filter(item => {
+        if (division && item.division !== division) return false;
+        if (designation && item.designation !== designation) return false;
+        if (query && !item.searchText.includes(query)) return false;
+        return true;
+      });
+
+      render();
+    }
+
+    function render() {
+      const rows = state.filtered;
+      const activityRows = rows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
+      const travelRows = rows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
+      const leaveRows = rows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
+
+      els.totalSubmissions.textContent = rows.length;
+      els.divisionCount.textContent = unique(rows.map(row => row.division)).length;
+      els.activityCount.textContent = activityRows.length;
+      els.travelCount.textContent = travelRows.length;
+      els.leaveCount.textContent = leaveRows.length;
+
+      renderExecutiveSummary(rows, activityRows, travelRows, leaveRows);
+      renderChoiceChart("divisionChart", els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
+      renderChoiceChart("leaveChart", els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052", onClick: value => setSearch(value) });
+      renderChoiceChart("travelChart", els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true, onClick: value => setSearch(value) });
+      renderChoiceChart("statusChart", els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
+      renderChoiceChart("activityMonthChart", els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
+      renderChoiceChart("travelEventChart", els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
+      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value), state.chartTypes.leaveDaysChart || "bar");
+      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value), state.chartTypes.divisionMixChart || "stacked-bar");
+      renderChoiceChart("descriptionChart", els.descriptionChart, descriptionKeywordCounts(activityRows), { color: "#4c6fb0", onClick: value => setSearch(value) });
+      renderTable(rows);
+      els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
+    }
+
+    function renderExecutiveSummary(rows, activityRows, travelRows, leaveRows) {
+      if (!rows.length) {
+        state.summaryActions = {};
+        els.summaryNarrative.textContent = state.submissions.length
+          ? "No records match the current filter. Adjust the filters or search term to restore the executive summary."
+          : "Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.";
+        els.summaryTopDivision.textContent = "-";
+        els.summaryTopStatus.textContent = "-";
+        els.summaryTopTravel.textContent = "-";
+        els.summaryLeaveLeader.textContent = "-";
+        els.autoExecutiveBrief.innerHTML = "";
+        els.smartInsightCards.innerHTML = "";
+        return;
+      }
+
+      const divisionCounts = counts(rows.map(row => row.division));
+      const activityStatusCounts = counts(activityRows.map(row => row.status));
+      const travelDestinationCounts = counts(travelRows.map(row => row.destination));
+      const travelEventCounts = counts(travelRows.map(row => row.eventType));
+      const leaveDaysByDivision = sumByDivision(leaveRows, "days");
+      const activityMonths = countsByMonth(activityRows);
+      const descriptionKeywords = descriptionKeywordCounts(activityRows);
+      const divisionMix = buildDivisionMix(rows);
+      const topDivision = topEntry(divisionCounts);
+      const topStatus = topEntry(activityStatusCounts);
+      const topTravel = topEntry(travelDestinationCounts);
+      const topEventType = topEntry(travelEventCounts);
+      const leaveLeader = topEntry(leaveDaysByDivision);
+      const topMonth = topEntry(activityMonths);
+      const topKeyword = topEntry(descriptionKeywords);
+      state.summaryActions = {
+        division: topDivision ? topDivision[0] : "",
+        status: topStatus ? topStatus[0] : "",
+        travel: topTravel ? topTravel[0] : "",
+        leave: leaveLeader ? leaveLeader[0] : ""
+      };
+      const divisionText = topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available";
+      const statusText = topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available";
+      const travelText = topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available";
+      const leaveText = leaveLeader ? `${leaveLeader[0]} (${formatDays(leaveLeader[1])})` : "Not available";
+
+      els.summaryNarrative.textContent =
+        `The current view covers ${rows.length} submission${rows.length === 1 ? "" : "s"}, ` +
+        `${activityRows.length} activit${activityRows.length === 1 ? "y" : "ies"}, ` +
+        `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"}, and ` +
+        `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"}. ` +
+        `${topDivision ? `${topDivision[0]} leads submissions, while ` : ""}` +
+        `${topStatus ? `${topStatus[0]} is the dominant activity status. ` : ""}` +
+        `${topTravel ? `Foreign travel is most represented by ${topTravel[0]}` : "Foreign travel has no dominant destination"}` +
+        `${topEventType ? `, mainly under ${topEventType[0]}.` : "."}`;
+
+      els.summaryTopDivision.textContent = divisionText;
+      els.summaryTopStatus.textContent = statusText;
+      els.summaryTopTravel.textContent = travelText;
+      els.summaryLeaveLeader.textContent = leaveText;
+      els.autoExecutiveBrief.innerHTML = buildExecutiveBriefHtml({
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
+        topMonth,
+        topKeyword,
+        leaveLeader
+      });
+      els.smartInsightCards.innerHTML = buildSmartInsightCardsHtml({
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        descriptionKeywords,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
+        leaveLeader
+      });
+      updateSummaryActiveState();
+    }
+
+    function buildExecutiveBriefHtml(context) {
+      const {
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
+        topMonth,
+        topKeyword,
+        leaveLeader
+      } = context;
+
+      const activeDivisions = Object.keys(divisionCounts).length;
+      const completionRate = activityRows.length && topStatus && normalize(topStatus[0]).includes("complete")
+        ? Math.round((topStatus[1] / activityRows.length) * 100)
+        : null;
+      const travelShare = rows.length ? Math.round((travelRows.length / rows.length) * 100) : 0;
+      const leaveTotal = leaveRows.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      const mixLeader = topEntry(Object.fromEntries(Object.entries(divisionMix).map(([division, mix]) => [division, mix.activities + mix.travels + mix.leaves])));
+      const topStatuses = topEntries(activityStatusCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+      const topDestinations = topEntries(travelDestinationCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+      const topEvents = topEntries(travelEventCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+
+      const activityBrief = [
+        `${activityRows.length} activit${activityRows.length === 1 ? "y is" : "ies are"} captured across ${activeDivisions} division${activeDivisions === 1 ? "" : "s"}.`,
+        topStatus ? `${topStatus[0]} is the leading activity status${completionRate !== null ? `, representing about ${completionRate}% of activities` : ""}.` : "No dominant activity status is available.",
+        topMonth ? `${topMonth[0]} is the most active reporting month with ${topMonth[1]} activit${topMonth[1] === 1 ? "y" : "ies"}.` : "",
+        topKeyword ? `Common description language points to ${topKeyword[0]} as a recurring theme.` : ""
+      ].filter(Boolean).join(" ");
+
+      const travelBrief = travelRows.length
+        ? [
+            `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"} appear in the current view, equivalent to about ${travelShare}% of submissions.`,
+            topTravel ? `${topTravel[0]} is the leading destination.` : "",
+            topEventType ? `${topEventType[0]} is the most frequent travel event type.` : "",
+            topDestinations ? `Top destinations: ${topDestinations}.` : "",
+            topEvents ? `Top event types: ${topEvents}.` : ""
+          ].filter(Boolean).join(" ")
+        : "No foreign travel records are present in the current view.";
+
+      const leaveBrief = leaveRows.length
+        ? [
+            `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} are captured, totaling ${formatDays(leaveTotal)} where durations are available.`,
+            leaveLeader ? `${leaveLeader[0]} accounts for the highest leave-day total at ${formatDays(leaveLeader[1])}.` : "",
+            leaveRows.length > rows.length ? "Multiple leave entries are present for some submissions." : "Leave records are not concentrated above submission count."
+          ].filter(Boolean).join(" ")
+        : "No leave records are present in the current view.";
+
+      const divisionBrief = [
+        topDivision ? `${topDivision[0]} leads submissions with ${topDivision[1]} record${topDivision[1] === 1 ? "" : "s"}.` : "No leading division is available.",
+        mixLeader ? `${mixLeader[0]} has the broadest combined footprint across activities, travel, and leave with ${mixLeader[1]} total item${mixLeader[1] === 1 ? "" : "s"}.` : "",
+        topStatuses ? `Activity status spread: ${topStatuses}.` : ""
+      ].filter(Boolean).join(" ");
+
+      return [
+        briefCard("Activity Pattern", activityBrief),
+        briefCard("Travel Highlights", travelBrief),
+        briefCard("Leave Observations", leaveBrief),
+        briefCard("Division Trends", divisionBrief)
+      ].join("");
+    }
+
+    function briefCard(title, body) {
+      return `
+        <article class="brief-item">
+          <span>${escapeHtml(title)}</span>
+          <p>${escapeHtml(body)}</p>
+        </article>
+      `;
+    }
+
+    function buildSmartInsightCardsHtml(context) {
+      const {
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        descriptionKeywords,
+        topDivision,
+        topTravel,
+        topEventType,
+        leaveLeader
+      } = context;
+
+      const totalSubmissions = rows.length;
+      const topDivisionShare = topDivision && totalSubmissions ? Math.round((topDivision[1] / totalSubmissions) * 100) : 0;
+      const divisionRiskLevel = topDivisionShare >= 70 ? "risk" : topDivisionShare >= 45 ? "watch" : "good";
+      const concentrationText = topDivision
+        ? `${topDivision[0]} holds ${topDivisionShare}% of visible submissions.`
+        : "No division concentration is available.";
+      const concentrationAdvice = topDivisionShare >= 70
+        ? "High concentration; review whether reporting is skewed toward one unit."
+        : topDivisionShare >= 45
+          ? "Moderate concentration; useful to compare with expected participation."
+          : "Balanced participation across visible divisions.";
+
+      const travelByDivision = travelRows.reduce((acc, row) => {
+        const division = row.parent.division || "Unspecified";
+        acc[division] = (acc[division] || 0) + 1;
+        return acc;
+      }, {});
+      const travelLeader = topEntry(travelByDivision);
+      const travelShare = travelLeader && travelRows.length ? Math.round((travelLeader[1] / travelRows.length) * 100) : 0;
+      const travelClass = travelShare >= 65 ? "watch" : "good";
+      const travelTitle = travelLeader ? travelLeader[0] : "None";
+      const travelBody = travelLeader
+        ? `${travelLeader[0]} accounts for ${travelLeader[1]} travel record${travelLeader[1] === 1 ? "" : "s"}${topTravel ? `, led by ${topTravel[0]}` : ""}${topEventType ? ` under ${topEventType[0]}` : ""}.`
+        : "No travel-heavy division is visible in the current view.";
+
+      const leaveClass = leaveLeader && Number(leaveLeader[1]) >= 10 ? "watch" : "good";
+      const leaveTitle = leaveLeader ? leaveLeader[0] : "None";
+      const leaveBody = leaveLeader
+        ? `${leaveLeader[0]} records the highest leave total at ${formatDays(leaveLeader[1])}. ${leaveRows.length > rows.length ? "Multiple leave entries appear within some submissions." : "Leave entries appear broadly in line with submission count."}`
+        : "No leave pattern is available in the current view.";
+
+      const completeness = dataCompleteness(rows);
+      const completenessClass = completeness.missingCount > 0 ? "watch" : "good";
+      const completenessTitle = completeness.missingCount > 0 ? `${completeness.missingCount} gap${completeness.missingCount === 1 ? "" : "s"}` : "Clean";
+      const completenessBody = completeness.missingCount > 0
+        ? `${completeness.summary} Review these before final reporting.`
+        : "Core fields and activity descriptions are complete for the visible records.";
+
+      const activityFootprint = topEntry(Object.fromEntries(Object.entries(divisionMix).map(([division, mix]) => [division, mix.activities])));
+      const keywordLeader = topEntry(descriptionKeywords);
+      const activityTitle = activityFootprint ? activityFootprint[0] : (topDivision ? topDivision[0] : "None");
+      const activityBody = activityFootprint
+        ? `${activityFootprint[0]} is the most active division by activity volume with ${activityFootprint[1]} activit${activityFootprint[1] === 1 ? "y" : "ies"}.${keywordLeader ? ` Descriptions frequently reference "${keywordLeader[0]}".` : ""}`
+        : "No activity-heavy division is visible in the current view.";
+
+      return [
+        insightCard("Most Active Division", activityTitle, activityBody, "good"),
+        insightCard("Activity Concentration Risk", topDivision ? topDivision[0] : "None", `${concentrationText} ${concentrationAdvice}`, divisionRiskLevel),
+        insightCard("Travel-Heavy Unit", travelTitle, travelBody, travelClass),
+        insightCard("Leave Pattern Observation", leaveTitle, leaveBody, leaveClass),
+        insightCard("Data Completeness Issue", completenessTitle, completenessBody, completenessClass)
+      ].join("");
+    }
+
+    function insightCard(label, title, body, status) {
+      return `
+        <article class="insight-card ${escapeHtml(status || "good")}">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(title)}</strong>
+          <p>${escapeHtml(body)}</p>
+        </article>
+      `;
+    }
+
+    function dataCompleteness(rows) {
+      let missingDivision = 0;
+      let missingDesignation = 0;
+      let missingActivities = 0;
+      let missingDescriptions = 0;
+
+      rows.forEach(row => {
+        if (!cleanText(row.division) || row.division === "Unspecified") missingDivision += 1;
+        if (!cleanText(row.designation) || row.designation === "Unspecified") missingDesignation += 1;
+        if (!row.activities.length) missingActivities += 1;
+        missingDescriptions += row.activities.filter(activity => !cleanText(activity.description)).length;
+      });
+
+      const parts = [];
+      if (missingDivision) parts.push(`${missingDivision} missing division`);
+      if (missingDesignation) parts.push(`${missingDesignation} missing designation`);
+      if (missingActivities) parts.push(`${missingActivities} without activities`);
+      if (missingDescriptions) parts.push(`${missingDescriptions} activity description gap${missingDescriptions === 1 ? "" : "s"}`);
+
+      return {
+        missingCount: missingDivision + missingDesignation + missingActivities + missingDescriptions,
+        summary: parts.length ? parts.join("; ") + "." : ""
+      };
+    }
+
+    function handleSummaryAction(action) {
+      const value = state.summaryActions[action];
+      if (!value) return;
+
+      if (action === "division" || action === "leave") {
+        els.divisionFilter.value = value;
+        els.searchInput.value = "";
+      } else {
+        els.searchInput.value = value;
+      }
+      applyFilters();
+    }
+
+    function handleKpiAction(action) {
+      if (!state.submissions.length) return;
+      if (action === "all") {
+        clearFilters();
+        return;
+      }
+      const targetId = {
+        divisions: "divisionChart",
+        activities: "statusChart",
+        travels: "travelChart",
+        leaves: "leaveChart"
+      }[action];
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) target.closest(".chart-panel").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function askDashboard() {
+      const question = cleanText(els.askInput.value);
+      if (!state.submissions.length) {
+        setAskAnswer("Upload an Excel file or fetch online Excel data first, then ask your question.");
+        return;
+      }
+      if (!question) {
+        setAskAnswer("Type a question such as \"Which division had the most foreign travel?\" or \"Summarize RIPS\".");
+        return;
+      }
+
+      const answer = answerDashboardQuestion(question);
+      setAskAnswer(answer);
+    }
+
+    function answerDashboardQuestion(question) {
+      const q = question.toLowerCase();
+      const rows = state.filtered.length ? state.filtered : state.submissions;
+      const activityRows = rows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
+      const travelRows = rows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
+      const leaveRows = rows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
+
+      if (q.includes("foreign travel") && (q.includes("most") || q.includes("highest") || q.includes("top"))) {
+        const byDivision = travelRows.reduce((acc, row) => {
+          const division = row.parent.division || "Unspecified";
+          acc[division] = (acc[division] || 0) + 1;
+          return acc;
+        }, {});
+        const leader = topEntry(byDivision);
+        if (!leader) return "No foreign travel records are available in the current view.";
+        setFilter(els.divisionFilter, leader[0]);
+        return `<strong>${escapeHtml(leader[0])}</strong> had the most foreign travel records, with <strong>${leader[1]}</strong> record${leader[1] === 1 ? "" : "s"}. I filtered the dashboard to that division.`;
+      }
+
+      if (q.includes("completed") && q.includes("activ")) {
+        setSearch("Completed");
+        const completed = activityRows.filter(row => normalize(row.status).includes("complete"));
+        return `There ${completed.length === 1 ? "is" : "are"} <strong>${completed.length}</strong> completed activit${completed.length === 1 ? "y" : "ies"} in the current view. I filtered the dashboard to completed activities.`;
+      }
+
+      if (q.includes("annual leave") || (q.includes("who") && q.includes("leave"))) {
+        const leaveType = q.includes("annual") ? "annual leave" : "";
+        const matches = leaveRows.filter(row => !leaveType || normalize(row.type).includes(leaveType));
+        const names = unique(matches.map(row => row.parent.name)).slice(0, 8);
+        if (leaveType) setSearch("Annual Leave");
+        if (!matches.length) return leaveType ? "No annual leave records are available in the current view." : "No leave records are available in the current view.";
+        const extra = unique(matches.map(row => row.parent.name)).length > names.length ? " and others" : "";
+        return `<strong>${matches.length}</strong> ${leaveType ? "annual leave" : "leave"} record${matches.length === 1 ? "" : "s"} found. Staff captured: <strong>${escapeHtml(names.join(", "))}${extra}</strong>.${leaveType ? " I filtered the dashboard to annual leave." : ""}`;
+      }
+
+      const division = findDivisionInQuestion(q);
+      if (q.includes("summarize") && division) {
+        setFilter(els.divisionFilter, division);
+        const divisionRows = state.submissions.filter(row => normalize(row.division) === normalize(division));
+        return summarizeDivision(division, divisionRows);
+      }
+
+      if ((q.includes("most active") || q.includes("active division")) && q.includes("division")) {
+        const activityByDivision = activityRows.reduce((acc, row) => {
+          const divisionName = row.parent.division || "Unspecified";
+          acc[divisionName] = (acc[divisionName] || 0) + 1;
+          return acc;
+        }, {});
+        const leader = topEntry(activityByDivision);
+        if (!leader) return "No activity records are available in the current view.";
+        setFilter(els.divisionFilter, leader[0]);
+        return `<strong>${escapeHtml(leader[0])}</strong> is the most active division by activity volume, with <strong>${leader[1]}</strong> activit${leader[1] === 1 ? "y" : "ies"}. I filtered the dashboard to that division.`;
+      }
+
+      if (q.includes("data completeness") || q.includes("missing")) {
+        const completeness = dataCompleteness(rows);
+        return completeness.missingCount
+          ? `Data completeness check found <strong>${completeness.missingCount}</strong> issue${completeness.missingCount === 1 ? "" : "s"}: ${escapeHtml(completeness.summary)}`
+          : "Data completeness check found no core missing-field issues in the current view.";
+      }
+
+      return "I can answer questions about top travel divisions, completed activities, annual leave, division summaries, most active divisions, and data completeness. Try: \"Summarize RIPS\".";
+    }
+
+    function findDivisionInQuestion(question) {
+      return unique(state.submissions.map(row => row.division)).find(division => question.includes(division.toLowerCase()));
+    }
+
+    function summarizeDivision(division, rows) {
+      if (!rows.length) return `No records are available for ${escapeHtml(division)}.`;
+      const activities = rows.flatMap(row => row.activities);
+      const travels = rows.flatMap(row => row.travels);
+      const leaves = rows.flatMap(row => row.leaves);
+      const status = topEntry(counts(activities.map(row => row.status)));
+      const travel = topEntry(counts(travels.map(row => row.destination)));
+      const leaveDays = leaves.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      return `<strong>${escapeHtml(division)}</strong> has <strong>${rows.length}</strong> submission${rows.length === 1 ? "" : "s"}, <strong>${activities.length}</strong> activit${activities.length === 1 ? "y" : "ies"}, <strong>${travels.length}</strong> foreign travel record${travels.length === 1 ? "" : "s"}, and <strong>${leaves.length}</strong> leave record${leaves.length === 1 ? "" : "s"}. ${status ? `The leading activity status is <strong>${escapeHtml(status[0])}</strong>. ` : ""}${travel ? `Top travel destination is <strong>${escapeHtml(travel[0])}</strong>. ` : ""}${leaves.length ? `Leave totals about <strong>${formatDays(leaveDays)}</strong>.` : ""}`;
+    }
+
+    function setAskAnswer(html) {
+      els.askAnswer.innerHTML = html;
+    }
+
+    function openPresentationMode() {
+      if (!state.submissions.length) {
+        els.fileState.textContent = "Upload or fetch data before opening Presentation Mode.";
+        return;
+      }
+      state.presentationSlides = buildPresentationSlides();
+      state.presentationIndex = 0;
+      els.presentationShell.classList.add("is-open");
+      els.presentationShell.setAttribute("aria-hidden", "false");
+      renderPresentationSlide();
+    }
+
+    function closePresentationMode() {
+      els.presentationShell.classList.remove("is-open");
+      els.presentationShell.setAttribute("aria-hidden", "true");
+    }
+
+    function movePresentation(direction) {
+      if (!state.presentationSlides.length) return;
+      state.presentationIndex = (state.presentationIndex + direction + state.presentationSlides.length) % state.presentationSlides.length;
+      renderPresentationSlide();
+    }
+
+    function buildPresentationSlides() {
+      const rows = state.filtered.length ? state.filtered : state.submissions;
+      const activityRows = rows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
+      const travelRows = rows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
+      const leaveRows = rows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
+      const topDivision = topEntry(counts(rows.map(row => row.division)));
+      const topStatus = topEntry(counts(activityRows.map(row => row.status)));
+      const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
+      const leaveLeader = topEntry(sumByDivision(leaveRows, "days"));
+
+      return [
+        {
+          type: "summary",
+          title: "Executive Snapshot",
+          body: `Current view covers ${rows.length} submissions, ${activityRows.length} activities, ${travelRows.length} foreign travel records, and ${leaveRows.length} leave records.`,
+          metrics: [
+            ["Top Division", topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available"],
+            ["Activity Status", topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available"],
+            ["Top Travel", topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available"],
+            ["Leave Leader", leaveLeader ? `${leaveLeader[0]} (${formatDays(leaveLeader[1])})` : "Not available"]
+          ]
+        },
+        { type: "html", title: "Auto Executive Brief", body: els.autoExecutiveBrief.innerHTML || "<p>No executive brief is available.</p>" },
+        { type: "html", title: "Smart Insight Cards", body: els.smartInsightCards.innerHTML || "<p>No smart insights are available.</p>" },
+        { type: "chart", title: "Submissions by Division", chartId: "divisionChart" },
+        { type: "chart", title: "Activity Status / Count", chartId: "statusChart" },
+        { type: "chart", title: "Activities by Month", chartId: "activityMonthChart" },
+        { type: "chart", title: "Foreign Travel by Destination", chartId: "travelChart" },
+        { type: "chart", title: "Foreign Travel by Event Type", chartId: "travelEventChart" },
+        { type: "chart", title: "Leave by Type", chartId: "leaveChart" },
+        { type: "chart", title: "Leave Days by Division", chartId: "leaveDaysChart" },
+        { type: "chart", title: "Division Activity Mix", chartId: "divisionMixChart" },
+        { type: "chart", title: "Description Keywords", chartId: "descriptionChart" }
+      ];
+    }
+
+    function renderPresentationSlide() {
+      const slide = state.presentationSlides[state.presentationIndex];
+      if (!slide) return;
+      els.presentationCount.textContent = `Slide ${state.presentationIndex + 1} of ${state.presentationSlides.length}`;
+      els.presentationDownloadBtn.style.display = slide.type === "chart" ? "inline-flex" : "none";
+
+      if (slide.type === "summary") {
+        els.presentationSlide.innerHTML = `
+          <h2>${escapeHtml(slide.title)}</h2>
+          <p>${escapeHtml(slide.body)}</p>
+          <div class="presentation-grid">
+            ${slide.metrics.map(([label, value]) => `
+              <div class="presentation-metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        return;
+      }
+
+      if (slide.type === "html") {
+        els.presentationSlide.innerHTML = `<h2>${escapeHtml(slide.title)}</h2><div class="presentation-grid">${slide.body}</div>`;
+        return;
+      }
+
+      const chart = document.getElementById(slide.chartId);
+      const svg = chart ? chart.querySelector("svg") : null;
+      els.presentationSlide.innerHTML = `
+        <h2>${escapeHtml(slide.title)}</h2>
+        <div class="presentation-chart">${svg ? svg.outerHTML : "<div class=\"empty\">No chart data available.</div>"}</div>
+      `;
+    }
+
+    function downloadPresentationChart() {
+      const slide = state.presentationSlides[state.presentationIndex];
+      if (!slide || slide.type !== "chart") return;
+      downloadChart(slide.chartId);
+    }
+
+    function updateSummaryActiveState() {
+      document.querySelectorAll("[data-summary-action]").forEach(button => {
+        const action = button.dataset.summaryAction;
+        const value = state.summaryActions[action];
+        const isDivisionAction = action === "division" || action === "leave";
+        const active = value && (
+          (isDivisionAction && els.divisionFilter.value === value) ||
+          (!isDivisionAction && els.searchInput.value.trim().toLowerCase() === value.toLowerCase())
+        );
+        button.classList.toggle("is-active", Boolean(active));
+      });
+    }
+
+    function renderChoiceChart(id, target, data, options = {}) {
+      const type = state.chartTypes[id] || "bar";
+      if (type === "column") {
+        renderColumnChart(target, data, options);
+      } else if (type === "donut") {
+        renderDonutChart(target, data, options);
+      } else if (type === "line") {
+        renderLineChart(target, data, options);
+      } else {
+        renderBarChart(target, data, options);
+      }
+    }
+
+    function renderBarChart(target, data, options = {}) {
+      const entries = Object.entries(data).sort((a, b) => {
+        if (options.sort === "month") return monthSortValue(a[0]) - monthSortValue(b[0]);
+        return b[1] - a[1];
+      }).slice(0, 10);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const rowHeight = 34;
+      const height = Math.max(260, entries.length * rowHeight + 44);
+      const max = Math.max(...entries.map(([, value]) => value));
+      const color = options.color || "#0b3a78";
+      const textColor = options.darkText ? "#2c2d31" : "#ffffff";
+      const valueSuffix = options.valueSuffix || "";
+
+      const rows = entries.map(([label, value], i) => {
+        const barWidth = Math.max(8, Math.round((value / max) * 430));
+        const y = 30 + i * rowHeight;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        const displayValue = formatNumber(value);
+        const valueText = `${displayValue}${valueSuffix}`;
+        const valueInside = barWidth >= Math.max(54, valueText.length * 8);
+        const valueX = valueInside ? 255 + Math.min(barWidth - 18, 390) : 245 + barWidth + 12;
+        const valueFill = valueInside ? textColor : "#1e2a3c";
+        const click = options.onClick ? ` data-chart-value="${safeLabel}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <text x="0" y="${y + 20}" fill="#34445c" font-size="14" font-weight="700">${truncate(safeLabel, 28)}</text>
+            <rect x="245" y="${y}" width="${barWidth}" height="24" rx="5" fill="${color}"></rect>
+            <text x="${valueX}" y="${y + 17}" fill="${valueFill}" font-size="13" font-weight="800">${valueText}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Bar chart">${rows}</svg>`;
+      if (options.onClick) {
+        target.querySelectorAll("[data-chart-value]").forEach(node => {
+          node.addEventListener("click", () => options.onClick(node.getAttribute("data-chart-value")));
+        });
+      }
+    }
+
+    function renderColumnChart(target, data, options = {}) {
+      const entries = chartEntries(data, options).slice(0, 8);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const baseY = 224;
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const slot = 640 / entries.length;
+      const barWidth = Math.min(52, Math.max(22, slot * 0.58));
+      const color = options.color || "#0b3a78";
+      const valueFormatter = options.valueFormatter || formatNumber;
+
+      const bars = entries.map(([label, value], i) => {
+        const numericValue = Number(value) || 0;
+        const barHeight = Math.max(8, Math.round((numericValue / max) * 150));
+        const x = 80 + i * slot + (slot - barWidth) / 2;
+        const y = baseY - barHeight;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        const click = options.onClick ? ` data-chart-value="${safeLabel}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" fill="${color}"></rect>
+            <text x="${x + barWidth / 2}" y="${y - 8}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="middle">${valueFormatter(numericValue)}</text>
+            <text x="${x + barWidth / 2}" y="${baseY + 24}" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeLabel, 12)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Column chart">
+        <line x1="58" y1="${baseY}" x2="722" y2="${baseY}" stroke="#dce6f2" stroke-width="2"></line>
+        ${bars}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderDonutChart(target, data, options = {}) {
+      const entries = chartEntries(data, options).slice(0, 8);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const total = entries.reduce((sum, [, value]) => sum + (Number(value) || 0), 0);
+      const cx = 210;
+      const cy = 145;
+      const radius = 84;
+      const stroke = 34;
+      const circumference = 2 * Math.PI * radius;
+      const colors = ["#0b3a78", "#f6bd19", "#149052", "#cf1f32", "#4c6fb0", "#7c8798", "#d98416", "#36a7c7"];
+      let offset = 0;
+
+      const arcs = entries.map(([label, value], i) => {
+        const numericValue = Number(value) || 0;
+        const length = total ? (numericValue / total) * circumference : 0;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        const arc = `
+          <circle data-chart-value="${safeLabel}" cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${colors[i % colors.length]}" stroke-width="${stroke}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" style="cursor:pointer">
+            <title>${safeLabel}: ${formatNumber(numericValue)}</title>
+          </circle>
+        `;
+        offset += length;
+        return arc;
+      }).join("");
+
+      const legend = entries.map(([label, value], i) => {
+        const y = 58 + i * 25;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        return `
+          <g data-chart-value="${safeLabel}" style="cursor:pointer">
+            <rect x="390" y="${y - 11}" width="13" height="13" rx="2" fill="${colors[i % colors.length]}"></rect>
+            <text x="414" y="${y}" fill="#34445c" font-size="13" font-weight="700">${truncate(safeLabel, 24)}</text>
+            <text x="650" y="${y}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="end">${formatNumber(value)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Donut chart">
+        ${arcs}
+        <circle cx="${cx}" cy="${cy}" r="52" fill="white"></circle>
+        <text x="${cx}" y="${cy - 4}" fill="#0b3a78" font-size="28" font-weight="900" text-anchor="middle">${formatNumber(total)}</text>
+        <text x="${cx}" y="${cy + 20}" fill="#66758d" font-size="12" font-weight="800" text-anchor="middle">TOTAL</text>
+        ${legend}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderLineChart(target, data, options = {}) {
+      const entries = chartEntries(data, options);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const minX = 76;
+      const maxX = 700;
+      const minY = 218;
+      const maxY = 58;
+      const step = entries.length > 1 ? (maxX - minX) / (entries.length - 1) : 0;
+      const points = entries.map(([, value], i) => {
+        const x = entries.length > 1 ? minX + i * step : (minX + maxX) / 2;
+        const y = minY - ((Number(value) || 0) / max) * (minY - maxY);
+        return { x, y };
+      });
+      const pointList = points.map(point => `${point.x},${point.y}`).join(" ");
+
+      const markers = entries.map(([label, value], i) => {
+        const safeLabel = escapeHtml(label || "Unspecified");
+        return `
+          <g data-chart-value="${safeLabel}" style="cursor:pointer">
+            <circle cx="${points[i].x}" cy="${points[i].y}" r="6" fill="${options.color || "#0b3a78"}"></circle>
+            <text x="${points[i].x}" y="${points[i].y - 12}" fill="#1e2a3c" font-size="12" font-weight="800" text-anchor="middle">${formatNumber(value)}</text>
+            <text x="${points[i].x}" y="248" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeLabel, 11)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart">
+        <line x1="${minX}" y1="${minY}" x2="${maxX}" y2="${minY}" stroke="#dce6f2" stroke-width="2"></line>
+        <polyline points="${pointList}" fill="none" stroke="${options.color || "#0b3a78"}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        ${markers}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderLeaveDaysChart(target, data, onClick, type = "bar") {
+      const entries = Object.entries(data)
+        .filter(([, value]) => Number(value) > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      if (type === "column") {
+        renderColumnChart(target, data, { color: "#f6bd19", darkText: true, valueFormatter: formatDays, onClick });
+        return;
+      }
+
+      const width = 760;
+      const rowHeight = 42;
+      const height = Math.max(260, entries.length * rowHeight + 44);
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const labelX = 0;
+      const barX = 255;
+      const barMaxWidth = 360;
+      const valueX = 645;
+
+      const rows = entries.map(([division, value], i) => {
+        const numericValue = Number(value) || 0;
+        const y = 30 + i * rowHeight;
+        const barWidth = Math.max(22, Math.round((numericValue / max) * barMaxWidth));
+        const safeDivision = escapeHtml(division || "Unspecified");
+        const click = onClick ? ` data-chart-value="${safeDivision}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <text x="${labelX}" y="${y + 20}" fill="#34445c" font-size="14" font-weight="700">${truncate(safeDivision, 30)}</text>
+            <rect x="${barX}" y="${y}" width="${barWidth}" height="24" rx="5" fill="#f6bd19"></rect>
+            <text x="${valueX}" y="${y + 17}" fill="#1e2a3c" font-size="13" font-weight="800">${formatDays(numericValue)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Leave days by division chart">${rows}</svg>`;
+      if (onClick) {
+        target.querySelectorAll("[data-chart-value]").forEach(node => {
+          node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
+        });
+      }
+    }
+
+    function renderStackedChart(target, data, onClick, type = "stacked-bar") {
+      const entries = Object.entries(data)
+        .map(([division, values]) => ({ division, ...values, total: values.activities + values.travels + values.leaves }))
+        .filter(item => item.total > 0)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      if (type === "stacked-column") {
+        renderStackedColumnChart(target, entries, onClick);
+        return;
+      }
+
+      const width = 760;
+      const rowHeight = 42;
+      const height = Math.max(286, entries.length * rowHeight + 72);
+      const max = Math.max(...entries.map(item => item.total));
+      const colors = {
+        activities: "#0b3a78",
+        travels: "#f6bd19",
+        leaves: "#149052"
+      };
+
+      const rows = entries.map((item, i) => {
+        const y = 36 + i * rowHeight;
+        let x = 245;
+        const segments = ["activities", "travels", "leaves"].map(key => {
+          const segmentWidth = item[key] ? Math.max(7, Math.round((item[key] / max) * 430)) : 0;
+          const segment = segmentWidth ? `<rect x="${x}" y="${y}" width="${segmentWidth}" height="24" rx="4" fill="${colors[key]}"><title>${key}: ${item[key]}</title></rect>` : "";
+          x += segmentWidth;
+          return segment;
+        }).join("");
+
+        const click = onClick ? ` data-chart-value="${escapeHtml(item.division)}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <text x="0" y="${y + 18}" fill="#34445c" font-size="14" font-weight="700">${truncate(escapeHtml(item.division), 28)}</text>
+            ${segments}
+            <text x="${Math.min(x + 10, 705)}" y="${y + 17}" fill="#1e2a3c" font-size="13" font-weight="800">${item.total}</text>
+          </g>
+        `;
+      }).join("");
+
+      const legend = `
+        <g>
+          <rect x="0" y="${height - 26}" width="12" height="12" fill="${colors.activities}"></rect>
+          <text x="18" y="${height - 16}" fill="#53657d" font-size="12">Activities</text>
+          <rect x="118" y="${height - 26}" width="12" height="12" fill="${colors.travels}"></rect>
+          <text x="136" y="${height - 16}" fill="#53657d" font-size="12">Foreign travels</text>
+          <rect x="266" y="${height - 26}" width="12" height="12" fill="${colors.leaves}"></rect>
+          <text x="284" y="${height - 16}" fill="#53657d" font-size="12">Leave records</text>
+        </g>
+      `;
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked bar chart">${rows}${legend}</svg>`;
+      if (onClick) {
+        target.querySelectorAll("[data-chart-value]").forEach(node => {
+          node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
+        });
+      }
+    }
+
+    function renderStackedColumnChart(target, entries, onClick) {
+      const width = 760;
+      const height = 320;
+      const baseY = 226;
+      const max = Math.max(...entries.map(item => item.total));
+      const slot = 640 / entries.length;
+      const barWidth = Math.min(54, Math.max(24, slot * 0.6));
+      const colors = {
+        activities: "#0b3a78",
+        travels: "#f6bd19",
+        leaves: "#149052"
+      };
+
+      const columns = entries.map((item, i) => {
+        const x = 74 + i * slot + (slot - barWidth) / 2;
+        let y = baseY;
+        const segments = ["activities", "travels", "leaves"].map(key => {
+          const segmentHeight = item[key] ? Math.max(7, Math.round((item[key] / max) * 158)) : 0;
+          y -= segmentHeight;
+          return segmentHeight ? `<rect x="${x}" y="${y}" width="${barWidth}" height="${segmentHeight}" rx="3" fill="${colors[key]}"><title>${key}: ${item[key]}</title></rect>` : "";
+        }).join("");
+        const safeDivision = escapeHtml(item.division);
+        const click = onClick ? ` data-chart-value="${safeDivision}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            ${segments}
+            <text x="${x + barWidth / 2}" y="${y - 10}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="middle">${item.total}</text>
+            <text x="${x + barWidth / 2}" y="${baseY + 24}" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeDivision, 12)}</text>
+          </g>
+        `;
+      }).join("");
+
+      const legend = `
+        <g>
+          <rect x="84" y="292" width="12" height="12" fill="${colors.activities}"></rect>
+          <text x="102" y="302" fill="#53657d" font-size="12">Activities</text>
+          <rect x="206" y="292" width="12" height="12" fill="${colors.travels}"></rect>
+          <text x="224" y="302" fill="#53657d" font-size="12">Foreign travels</text>
+          <rect x="360" y="292" width="12" height="12" fill="${colors.leaves}"></rect>
+          <text x="378" y="302" fill="#53657d" font-size="12">Leave records</text>
+        </g>
+      `;
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked column chart">
+        <line x1="58" y1="${baseY}" x2="722" y2="${baseY}" stroke="#dce6f2" stroke-width="2"></line>
+        ${columns}
+        ${legend}
+      </svg>`;
+      attachChartClicks(target, onClick);
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        els.tableWrap.innerHTML = `<div class="empty">${state.submissions.length ? "No records match the current filter." : "Upload an Excel workbook to populate the dashboard."}</div>`;
+        return;
+      }
+
+      const tableRows = rows.map(row => {
+        const activities = row.activities.map(a => `${escapeHtml(a.title)} <span class="pill ${normalize(a.status).includes("complete") ? "done" : ""}">${escapeHtml(a.status)}</span>`).join("<br>");
+        const descriptions = row.activities
+          .map(a => a.description)
+          .filter(Boolean)
+          .map(description => escapeHtml(description))
+          .join("<br>");
+        const travels = row.travels.map(t => `${escapeHtml(t.destination)}${t.purpose ? ` - ${escapeHtml(t.purpose)}` : ""}`).join("<br>");
+        const leaves = row.leaves.map(l => `${escapeHtml(l.type)}${l.duration ? ` - ${escapeHtml(l.duration)}` : ""}`).join("<br>");
+        const expanded = state.expandedRowId === row.rowId;
+        return `
+          <tr data-record-id="${escapeHtml(row.rowId)}">
+            <td>${escapeHtml(row.rowId)}</td>
+            <td>${escapeHtml(row.name)}<br><span class="small-note">${escapeHtml(row.email)}</span></td>
+            <td>${escapeHtml(row.division)}</td>
+            <td>${escapeHtml(row.designation)}</td>
+            <td>${activities || "<span class=\"small-note\">None</span>"}</td>
+            <td>${descriptions || "<span class=\"small-note\">None</span>"}</td>
+            <td>${travels || "<span class=\"small-note\">None</span>"}</td>
+            <td>${leaves || "<span class=\"small-note\">None</span>"}</td>
+            <td>${escapeHtml(row.completionTime)}</td>
+          </tr>
+          ${expanded ? renderDetailRow(row) : ""}
+        `;
+      }).join("");
+
+      els.tableWrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Employee</th>
+              <th>Division</th>
+              <th>Designation</th>
+              <th>Activities</th>
+              <th>Brief Descriptions</th>
+              <th>Foreign Travels</th>
+              <th>Leave</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      `;
+
+      els.tableWrap.querySelectorAll("[data-record-id]").forEach(row => {
+        row.addEventListener("click", () => {
+          const id = row.getAttribute("data-record-id");
+          state.expandedRowId = state.expandedRowId === id ? "" : id;
+          renderTable(state.filtered);
+        });
+      });
+    }
+
+    function renderDetailRow(row) {
+      const activityDetail = row.activities.length
+        ? row.activities.map(item => `<p><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.description)}<br><span class="small-note">${escapeHtml(item.period)} - ${escapeHtml(item.status)}</span></p>`).join("")
+        : "<p class=\"small-note\">No activity records.</p>";
+      const travelDetail = row.travels.length
+        ? row.travels.map(item => `<p><strong>${escapeHtml(item.destination)}</strong><br>${escapeHtml(item.purpose)}<br><span class="small-note">${escapeHtml(item.eventType)} | ${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)}</span></p>`).join("")
+        : "<p class=\"small-note\">No foreign travel records.</p>";
+      const leaveDetail = row.leaves.length
+        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatDays(item.days)}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
+        : "<p class=\"small-note\">No leave records.</p>";
+
+      return `
+        <tr class="detail-row">
+          <td colspan="9">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <h3>Activities</h3>
+                ${activityDetail}
+              </div>
+              <div class="detail-box">
+                <h3>Foreign Travels</h3>
+                ${travelDetail}
+              </div>
+              <div class="detail-box">
+                <h3>Leave Records</h3>
+                ${leaveDetail}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function resetDashboard() {
+      els.fileInput.value = "";
+      els.searchInput.value = "";
+      els.divisionFilter.innerHTML = `<option value="">All Divisions</option>`;
+      els.designationFilter.innerHTML = `<option value="">All Designations</option>`;
+      els.fileState.textContent = "No file loaded.";
+      resetDataOnly();
+    }
+
+    function clearFilters() {
+      els.divisionFilter.value = "";
+      els.designationFilter.value = "";
+      els.searchInput.value = "";
+      applyFilters();
+    }
+
+    function resetDataOnly() {
+      state.submissions = [];
+      state.filtered = [];
+      state.fileName = "";
+      state.summaryActions = {};
+      state.expandedRowId = "";
+      render();
+    }
+
+    function setFilter(select, value) {
+      select.value = value;
+      applyFilters();
+    }
+
+    function setSearch(value) {
+      els.searchInput.value = value;
+      applyFilters();
+    }
+
+    function chartEntries(data, options = {}) {
+      return Object.entries(data).sort((a, b) => {
+        if (options.sort === "month") return monthSortValue(a[0]) - monthSortValue(b[0]);
+        return b[1] - a[1];
+      });
+    }
+
+    function attachChartClicks(target, onClick) {
+      if (!onClick) return;
+      target.querySelectorAll("[data-chart-value]").forEach(node => {
+        node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
+      });
+    }
+
+    function downloadChart(chartId) {
+      const chart = document.getElementById(chartId);
+      const svg = chart ? chart.querySelector("svg") : null;
+      if (!svg) return;
+
+      const copy = svg.cloneNode(true);
+      copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const box = svg.viewBox.baseVal;
+      const width = box && box.width ? box.width : svg.clientWidth || 760;
+      const height = box && box.height ? box.height : svg.clientHeight || 300;
+      copy.setAttribute("width", width);
+      copy.setAttribute("height", height);
+
+      const serializer = new XMLSerializer();
+      const source = serializer.serializeToString(copy);
+      const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const image = new Image();
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement("a");
+        link.download = `${slugify(chartId)}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+
+      image.onerror = () => URL.revokeObjectURL(url);
+      image.src = url;
+    }
+
+    function slugify(value) {
+      return cleanText(value)
+        .replace(/([a-z])([A-Z])/g, "$1-$2")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    function counts(values) {
+      return values.reduce((acc, value) => {
+        const label = cleanText(value) || "Unspecified";
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function countsByMonth(rows) {
+      return rows.reduce((acc, row) => {
+        const label = monthLabel(row.periodRaw || row.period);
+        if (!label) return acc;
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function sumByDivision(rows, field) {
+      return rows.reduce((acc, row) => {
+        const division = row.parent.division || "Unspecified";
+        acc[division] = (acc[division] || 0) + (Number(row[field]) || 0);
+        return acc;
+      }, {});
+    }
+
+    function buildDivisionMix(rows) {
+      return rows.reduce((acc, row) => {
+        const division = row.division || "Unspecified";
+        if (!acc[division]) acc[division] = { activities: 0, travels: 0, leaves: 0 };
+        acc[division].activities += row.activities.length;
+        acc[division].travels += row.travels.length;
+        acc[division].leaves += row.leaves.length;
+        return acc;
+      }, {});
+    }
+
+    function descriptionKeywordCounts(activityRows) {
+      const stopWords = new Set([
+        "and", "the", "for", "with", "from", "that", "this", "have", "has", "was", "were", "are", "been",
+        "into", "onto", "over", "under", "than", "then", "them", "they", "their", "there", "these", "those",
+        "a", "an", "to", "of", "in", "on", "at", "by", "or", "as", "is", "it", "we", "our", "be", "if",
+        "created", "creation", "produced", "production", "report", "reports", "activity", "activities"
+      ]);
+
+      return activityRows.reduce((acc, row) => {
+        cleanText(row.description)
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, " ")
+          .split(/\s+/)
+          .map(word => word.trim())
+          .filter(word => word.length > 2 && !stopWords.has(word))
+          .forEach(word => {
+            acc[word] = (acc[word] || 0) + 1;
+          });
+        return acc;
+      }, {});
+    }
+
+    function topEntry(data) {
+      const entries = Object.entries(data).filter(([, value]) => Number(value) > 0);
+      if (!entries.length) return null;
+      return entries.sort((a, b) => b[1] - a[1])[0];
+    }
+
+    function topEntries(data, limit) {
+      return Object.entries(data)
+        .filter(([, value]) => Number(value) > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit);
+    }
+
+    function unique(values) {
+      return [...new Set(values.map(cleanText).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    }
+
+    function cleanText(value) {
+      if (value === null || value === undefined) return "";
+      return String(value).trim();
+    }
+
+    function normalize(value) {
+      return cleanText(value).toLowerCase().replace(/\d+$/g, "").replace(/\s+/g, " ");
+    }
+
+    function isNo(value) {
+      return normalize(value) === "no";
+    }
+
+    function formatExcelDate(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      const number = Number(text);
+      if (!Number.isFinite(number) || number < 20000 || number > 90000) return text;
+      const date = new Date(Date.UTC(1899, 11, 30) + number * 86400000);
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function formatFeedTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return cleanText(value);
+      return date.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function excelDateToDate(value) {
+      const text = cleanText(value);
+      if (!text) return null;
+      const number = Number(text);
+      if (Number.isFinite(number) && number >= 20000 && number <= 90000) {
+        return new Date(Date.UTC(1899, 11, 30) + number * 86400000);
+      }
+      const parsed = new Date(text);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function monthLabel(value) {
+      const date = excelDateToDate(value);
+      if (!date) return "";
+      return date.toLocaleDateString(undefined, { year: "numeric", month: "short" });
+    }
+
+    function monthSortValue(label) {
+      const date = new Date(`1 ${label}`);
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    function parseDurationDays(duration, start, end) {
+      const text = cleanText(duration).toLowerCase();
+      const direct = Number(text);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+
+      const match = text.match(/(\d+(?:\.\d+)?)/);
+      if (match) {
+        const value = Number(match[1]);
+        if (text.includes("week")) return value * 5;
+        return value;
+      }
+
+      const startDate = excelDateToDate(start);
+      const endDate = excelDateToDate(end);
+      if (startDate && endDate && endDate >= startDate) {
+        return Math.round((endDate - startDate) / 86400000) + 1;
+      }
+      return 0;
+    }
+
+    function formatNumber(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return cleanText(value);
+      return Number.isInteger(number) ? String(number) : number.toFixed(1);
+    }
+
+    function formatDays(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return cleanText(value);
+      const label = Math.abs(number) === 1 ? "day" : "days";
+      return `${formatNumber(number)} ${label}`;
+    }
+
+    function truncate(value, limit) {
+      const text = cleanText(value);
+      return text.length > limit ? `${text.slice(0, limit - 1)}...` : text;
+    }
+
+    function escapeHtml(value) {
+      return cleanText(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    render();
+  </script>
+</body>
+</html>
