@@ -188,6 +188,16 @@
     .card {
       min-height: 126px;
       padding: 22px 24px;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 18px 36px rgba(11, 58, 120, 0.16);
+      outline: none;
+      transform: translateY(-1px);
     }
 
     .label {
@@ -246,6 +256,24 @@
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.72);
       padding: 14px 16px;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .summary-chip:hover,
+    .summary-chip:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 12px 24px rgba(11, 58, 120, 0.14);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .summary-chip.is-active {
+      border-color: var(--nca-blue);
+      background: rgba(236, 244, 253, 0.92);
     }
 
     .summary-chip span {
@@ -334,6 +362,38 @@
 
     tbody tr:hover {
       background: rgba(246, 189, 25, 0.12);
+      cursor: pointer;
+    }
+
+    .detail-row td {
+      background: rgba(245, 249, 253, 0.94);
+      cursor: default;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .detail-box {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: white;
+      padding: 14px;
+    }
+
+    .detail-box h3 {
+      margin: 0 0 10px;
+      color: var(--nca-blue-deep);
+      font-size: 15px;
+    }
+
+    .detail-box p {
+      margin: 0 0 8px;
+      color: #34445c;
+      line-height: 1.45;
+    }
     }
 
     .pill {
@@ -370,6 +430,10 @@
 
       .summary-highlights {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
       }
 
       .grid {
@@ -456,23 +520,23 @@
     </section>
 
     <section class="stats" aria-label="Dashboard summary">
-      <article class="card">
+      <article class="card" tabindex="0" role="button" data-kpi-action="all">
         <div class="label">Total Submissions</div>
         <div class="value" id="totalSubmissions">0</div>
       </article>
-      <article class="card">
+      <article class="card" tabindex="0" role="button" data-kpi-action="divisions">
         <div class="label">Divisions</div>
         <div class="value" id="divisionCount">0</div>
       </article>
-      <article class="card">
+      <article class="card" tabindex="0" role="button" data-kpi-action="activities">
         <div class="label">Activities</div>
         <div class="value" id="activityCount">0</div>
       </article>
-      <article class="card">
+      <article class="card" tabindex="0" role="button" data-kpi-action="travels">
         <div class="label">Foreign Travels</div>
         <div class="value" id="travelCount">0</div>
       </article>
-      <article class="card">
+      <article class="card" tabindex="0" role="button" data-kpi-action="leaves">
         <div class="label">Leave Records</div>
         <div class="value" id="leaveCount">0</div>
       </article>
@@ -483,22 +547,22 @@
         <h2>Executive Summary</h2>
         <p id="summaryNarrative">Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.</p>
         <div class="summary-highlights">
-          <div class="summary-chip">
+          <button class="summary-chip" type="button" data-summary-action="division">
             <span>Top Division</span>
             <strong id="summaryTopDivision">-</strong>
-          </div>
-          <div class="summary-chip">
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="status">
             <span>Activity Status</span>
             <strong id="summaryTopStatus">-</strong>
-          </div>
-          <div class="summary-chip">
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="travel">
             <span>Top Travel</span>
             <strong id="summaryTopTravel">-</strong>
-          </div>
-          <div class="summary-chip">
+          </button>
+          <button class="summary-chip" type="button" data-summary-action="leave">
             <span>Leave Leader</span>
             <strong id="summaryLeaveLeader">-</strong>
-          </div>
+          </button>
         </div>
       </div>
     </section>
@@ -563,7 +627,9 @@
     const state = {
       submissions: [],
       filtered: [],
-      fileName: ""
+      fileName: "",
+      summaryActions: {},
+      expandedRowId: ""
     };
 
     const els = {
@@ -602,6 +668,18 @@
     els.divisionFilter.addEventListener("change", applyFilters);
     els.designationFilter.addEventListener("change", applyFilters);
     els.searchInput.addEventListener("input", applyFilters);
+    document.querySelectorAll("[data-summary-action]").forEach(button => {
+      button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
+    });
+    document.querySelectorAll("[data-kpi-action]").forEach(card => {
+      card.addEventListener("click", () => handleKpiAction(card.dataset.kpiAction));
+      card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleKpiAction(card.dataset.kpiAction);
+        }
+      });
+    });
 
     function handleFileUpload(event) {
       const file = event.target.files[0];
@@ -658,9 +736,9 @@
           };
           base.searchText = [
             base.name, base.email, base.division, base.designation,
-            ...base.activities.flatMap(a => [a.title, a.description, a.status]),
-            ...base.travels.flatMap(t => [t.destination, t.purpose, t.eventType, t.sponsor]),
-            ...base.leaves.flatMap(l => [l.type, l.duration, l.remarks])
+            ...base.activities.flatMap(a => [a.title, a.description, a.period, monthLabel(a.periodRaw), a.status]),
+            ...base.travels.flatMap(t => [t.destination, t.start, t.end, t.duration, t.purpose, t.eventType, t.sponsor]),
+            ...base.leaves.flatMap(l => [l.type, l.start, l.end, l.duration, l.remarks])
           ].join(" ").toLowerCase();
           return base;
         });
@@ -771,19 +849,20 @@
 
       renderExecutiveSummary(rows, activityRows, travelRows, leaveRows);
       renderBarChart(els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
-      renderBarChart(els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052" });
-      renderBarChart(els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true });
-      renderBarChart(els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32" });
-      renderBarChart(els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month" });
-      renderBarChart(els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052" });
-      renderBarChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), { color: "#f6bd19", darkText: true, valueSuffix: " days" });
-      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows));
+      renderBarChart(els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052", onClick: value => setSearch(value) });
+      renderBarChart(els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true, onClick: value => setSearch(value) });
+      renderBarChart(els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
+      renderBarChart(els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
+      renderBarChart(els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
+      renderBarChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), { color: "#f6bd19", darkText: true, valueSuffix: " days", onClick: value => setFilter(els.divisionFilter, value) });
+      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value));
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
     }
 
     function renderExecutiveSummary(rows, activityRows, travelRows, leaveRows) {
       if (!rows.length) {
+        state.summaryActions = {};
         els.summaryNarrative.textContent = state.submissions.length
           ? "No records match the current filter. Adjust the filters or search term to restore the executive summary."
           : "Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.";
@@ -799,6 +878,12 @@
       const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
       const topEventType = topEntry(counts(travelRows.map(row => row.eventType)));
       const leaveLeader = topEntry(sumByDivision(leaveRows, "days"));
+      state.summaryActions = {
+        division: topDivision ? topDivision[0] : "",
+        status: topStatus ? topStatus[0] : "",
+        travel: topTravel ? topTravel[0] : "",
+        leave: leaveLeader ? leaveLeader[0] : ""
+      };
       const divisionText = topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available";
       const statusText = topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available";
       const travelText = topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available";
@@ -818,6 +903,49 @@
       els.summaryTopStatus.textContent = statusText;
       els.summaryTopTravel.textContent = travelText;
       els.summaryLeaveLeader.textContent = leaveText;
+      updateSummaryActiveState();
+    }
+
+    function handleSummaryAction(action) {
+      const value = state.summaryActions[action];
+      if (!value) return;
+
+      if (action === "division" || action === "leave") {
+        els.divisionFilter.value = value;
+        els.searchInput.value = "";
+      } else {
+        els.searchInput.value = value;
+      }
+      applyFilters();
+    }
+
+    function handleKpiAction(action) {
+      if (!state.submissions.length) return;
+      if (action === "all") {
+        clearFilters();
+        return;
+      }
+      const targetId = {
+        divisions: "divisionChart",
+        activities: "statusChart",
+        travels: "travelChart",
+        leaves: "leaveChart"
+      }[action];
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) target.closest(".chart-panel").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function updateSummaryActiveState() {
+      document.querySelectorAll("[data-summary-action]").forEach(button => {
+        const action = button.dataset.summaryAction;
+        const value = state.summaryActions[action];
+        const isDivisionAction = action === "division" || action === "leave";
+        const active = value && (
+          (isDivisionAction && els.divisionFilter.value === value) ||
+          (!isDivisionAction && els.searchInput.value.trim().toLowerCase() === value.toLowerCase())
+        );
+        button.classList.toggle("is-active", Boolean(active));
+      });
     }
 
     function renderBarChart(target, data, options = {}) {
@@ -865,7 +993,7 @@
       }
     }
 
-    function renderStackedChart(target, data) {
+    function renderStackedChart(target, data, onClick) {
       const entries = Object.entries(data)
         .map(([division, values]) => ({ division, ...values, total: values.activities + values.travels + values.leaves }))
         .filter(item => item.total > 0)
@@ -897,8 +1025,9 @@
           return segment;
         }).join("");
 
+        const click = onClick ? ` data-chart-value="${escapeHtml(item.division)}" style="cursor:pointer"` : "";
         return `
-          <g>
+          <g${click}>
             <text x="0" y="${y + 18}" fill="#34445c" font-size="14" font-weight="700">${truncate(escapeHtml(item.division), 28)}</text>
             ${segments}
             <text x="${Math.min(x + 10, 705)}" y="${y + 17}" fill="#1e2a3c" font-size="13" font-weight="800">${item.total}</text>
@@ -918,6 +1047,11 @@
       `;
 
       target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked bar chart">${rows}${legend}</svg>`;
+      if (onClick) {
+        target.querySelectorAll("[data-chart-value]").forEach(node => {
+          node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
+        });
+      }
     }
 
     function renderTable(rows) {
@@ -930,8 +1064,9 @@
         const activities = row.activities.map(a => `${escapeHtml(a.title)} <span class="pill ${normalize(a.status).includes("complete") ? "done" : ""}">${escapeHtml(a.status)}</span>`).join("<br>");
         const travels = row.travels.map(t => `${escapeHtml(t.destination)}${t.purpose ? ` - ${escapeHtml(t.purpose)}` : ""}`).join("<br>");
         const leaves = row.leaves.map(l => `${escapeHtml(l.type)}${l.duration ? ` - ${escapeHtml(l.duration)}` : ""}`).join("<br>");
+        const expanded = state.expandedRowId === row.rowId;
         return `
-          <tr>
+          <tr data-record-id="${escapeHtml(row.rowId)}">
             <td>${escapeHtml(row.rowId)}</td>
             <td>${escapeHtml(row.name)}<br><span class="small-note">${escapeHtml(row.email)}</span></td>
             <td>${escapeHtml(row.division)}</td>
@@ -941,6 +1076,7 @@
             <td>${leaves || "<span class=\"small-note\">None</span>"}</td>
             <td>${escapeHtml(row.completionTime)}</td>
           </tr>
+          ${expanded ? renderDetailRow(row) : ""}
         `;
       }).join("");
 
@@ -961,6 +1097,47 @@
           <tbody>${tableRows}</tbody>
         </table>
       `;
+
+      els.tableWrap.querySelectorAll("[data-record-id]").forEach(row => {
+        row.addEventListener("click", () => {
+          const id = row.getAttribute("data-record-id");
+          state.expandedRowId = state.expandedRowId === id ? "" : id;
+          renderTable(state.filtered);
+        });
+      });
+    }
+
+    function renderDetailRow(row) {
+      const activityDetail = row.activities.length
+        ? row.activities.map(item => `<p><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.description)}<br><span class="small-note">${escapeHtml(item.period)} - ${escapeHtml(item.status)}</span></p>`).join("")
+        : "<p class=\"small-note\">No activity records.</p>";
+      const travelDetail = row.travels.length
+        ? row.travels.map(item => `<p><strong>${escapeHtml(item.destination)}</strong><br>${escapeHtml(item.purpose)}<br><span class="small-note">${escapeHtml(item.eventType)} | ${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)}</span></p>`).join("")
+        : "<p class=\"small-note\">No foreign travel records.</p>";
+      const leaveDetail = row.leaves.length
+        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatNumber(item.days)} days</span><br>${escapeHtml(item.remarks)}</p>`).join("")
+        : "<p class=\"small-note\">No leave records.</p>";
+
+      return `
+        <tr class="detail-row">
+          <td colspan="8">
+            <div class="detail-grid">
+              <div class="detail-box">
+                <h3>Activities</h3>
+                ${activityDetail}
+              </div>
+              <div class="detail-box">
+                <h3>Foreign Travels</h3>
+                ${travelDetail}
+              </div>
+              <div class="detail-box">
+                <h3>Leave Records</h3>
+                ${leaveDetail}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     }
 
     function resetDashboard() {
@@ -972,15 +1149,29 @@
       resetDataOnly();
     }
 
+    function clearFilters() {
+      els.divisionFilter.value = "";
+      els.designationFilter.value = "";
+      els.searchInput.value = "";
+      applyFilters();
+    }
+
     function resetDataOnly() {
       state.submissions = [];
       state.filtered = [];
       state.fileName = "";
+      state.summaryActions = {};
+      state.expandedRowId = "";
       render();
     }
 
     function setFilter(select, value) {
       select.value = value;
+      applyFilters();
+    }
+
+    function setSearch(value) {
+      els.searchInput.value = value;
       applyFilters();
     }
 
