@@ -1640,7 +1640,7 @@
         const values = { [anchor]: anchorValue };
 
         fields.forEach(field => {
-          const fieldIdx = headers.findIndex((h, i) => i > idx && i < limit && fieldMatches(h, field));
+          const fieldIdx = findGroupedFieldIndex(headers, idx, limit, field, anchor, header);
           values[field] = fieldIdx >= 0 ? cleanText(row[fieldIdx]) : "";
         });
 
@@ -3253,11 +3253,47 @@
 
     function fieldMatches(header, field) {
       const normalizedHeader = normalize(header);
+      if (normalize(field) === "duration") {
+        if (normalizedHeader.includes("additional")) return false;
+        return normalizedHeader.includes("duration") ||
+          normalizedHeader.includes("number of days") ||
+          normalizedHeader.includes("number of leave days") ||
+          normalizedHeader.includes("no of days") ||
+          normalizedHeader.includes("no. of days") ||
+          normalizedHeader.includes("total days") ||
+          normalizedHeader === "days" ||
+          normalizedHeader.startsWith("days ") ||
+          normalizedHeader === "leave days" ||
+          normalizedHeader.startsWith("leave days ");
+      }
       return (FIELD_ALIASES[field] || [field]).some(alias => {
         const normalizedAlias = normalize(alias);
+        if (normalizedAlias === "days") return normalizedHeader === "days" || normalizedHeader.startsWith("days ");
         if (normalizedAlias.length <= 3) return normalizedHeader === normalizedAlias || normalizedHeader.startsWith(`${normalizedAlias} `);
         return normalizedHeader.startsWith(normalizedAlias) || (normalizedAlias.length > 3 && normalizedHeader.includes(normalizedAlias));
       });
+    }
+
+    function findGroupedFieldIndex(headers, anchorIndex, limit, field, anchor, anchorHeader) {
+      const localIndex = headers.findIndex((header, index) => index > anchorIndex && index < limit && fieldMatches(header, field));
+      if (localIndex >= 0) return localIndex;
+
+      if (normalize(anchor) !== normalize("Leave Type")) return -1;
+      const suffix = headerSuffix(anchorHeader) || "1";
+      return headers.findIndex((header, index) => {
+        if (index <= anchorIndex) return false;
+        if (headerSuffix(header) !== suffix) return false;
+        return fieldMatches(headerBase(header), field);
+      });
+    }
+
+    function headerSuffix(value) {
+      const match = cleanText(value).match(/(\d+)$/);
+      return match ? match[1] : "";
+    }
+
+    function headerBase(value) {
+      return cleanText(value).replace(/\d+$/g, "");
     }
 
     function leaveDayCount(leave) {
