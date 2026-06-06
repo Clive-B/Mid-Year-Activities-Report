@@ -715,12 +715,16 @@
         const y = 30 + i * rowHeight;
         const safeLabel = escapeHtml(label || "Unspecified");
         const displayValue = formatNumber(value);
+        const valueText = `${displayValue}${valueSuffix}`;
+        const valueInside = barWidth >= Math.max(54, valueText.length * 8);
+        const valueX = valueInside ? 255 + Math.min(barWidth - 18, 390) : 245 + barWidth + 12;
+        const valueFill = valueInside ? textColor : "#1e2a3c";
         const click = options.onClick ? ` data-chart-value="${safeLabel}" style="cursor:pointer"` : "";
         return `
           <g${click}>
             <text x="0" y="${y + 20}" fill="#34445c" font-size="14" font-weight="700">${truncate(safeLabel, 28)}</text>
             <rect x="245" y="${y}" width="${barWidth}" height="24" rx="5" fill="${color}"></rect>
-            <text x="${255 + Math.min(barWidth - 18, 390)}" y="${y + 17}" fill="${textColor}" font-size="13" font-weight="800">${displayValue}${valueSuffix}</text>
+            <text x="${valueX}" y="${y + 17}" fill="${valueFill}" font-size="13" font-weight="800">${valueText}</text>
           </g>
         `;
       }).join("");
