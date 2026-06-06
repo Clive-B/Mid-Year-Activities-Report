@@ -529,6 +529,70 @@
       border-left: 5px solid var(--nca-green);
     }
 
+    .quality-panel {
+      margin-bottom: 26px;
+      padding: 24px;
+    }
+
+    .quality-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .quality-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .quality-card {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 14px;
+      min-height: 94px;
+    }
+
+    .quality-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .quality-card strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--nca-blue-deep);
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .quality-card.risk {
+      border-left: 5px solid var(--nca-red);
+    }
+
+    .quality-card.good {
+      border-left: 5px solid var(--nca-green);
+    }
+
+    .quality-list {
+      max-height: 340px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .quality-list table {
+      min-width: 900px;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -729,6 +793,14 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .quality-head {
+        flex-direction: column;
+      }
+
+      .quality-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .detail-grid {
         grid-template-columns: 1fr;
       }
@@ -766,6 +838,10 @@
       }
 
       .ask-row {
+        grid-template-columns: 1fr;
+      }
+
+      .quality-grid {
         grid-template-columns: 1fr;
       }
 
@@ -928,6 +1004,23 @@
         </button>
       </div>
       <div class="ask-answer" id="askAnswer">Upload or fetch data, then ask a question.</div>
+    </section>
+
+    <section class="toolbar quality-panel" aria-label="Data Quality Monitor">
+      <div class="quality-head">
+        <div>
+          <div class="upload-title">Data Quality Monitor</div>
+          <div class="upload-hint">Flags missing divisions, blank activity titles, missing travel dates, inconsistent leave duration, duplicate names, and incomplete submissions.</div>
+        </div>
+        <button class="button ghost" id="qualityClearBtn" type="button" title="Clear filters for full quality view">
+          <span aria-hidden="true">&#8634;</span>
+          Full Data View
+        </button>
+      </div>
+      <div class="quality-grid" id="qualityCards"></div>
+      <div class="quality-list" id="qualityList">
+        <div class="empty">Upload or fetch data to review quality issues.</div>
+      </div>
     </section>
 
     <section class="grid">
@@ -1125,6 +1218,9 @@
       askInput: document.getElementById("askInput"),
       askBtn: document.getElementById("askBtn"),
       askAnswer: document.getElementById("askAnswer"),
+      qualityCards: document.getElementById("qualityCards"),
+      qualityList: document.getElementById("qualityList"),
+      qualityClearBtn: document.getElementById("qualityClearBtn"),
       totalSubmissions: document.getElementById("totalSubmissions"),
       divisionCount: document.getElementById("divisionCount"),
       activityCount: document.getElementById("activityCount"),
@@ -1167,6 +1263,7 @@
     els.askInput.addEventListener("keydown", event => {
       if (event.key === "Enter") askDashboard();
     });
+    els.qualityClearBtn.addEventListener("click", clearFilters);
     document.querySelectorAll("[data-summary-action]").forEach(button => {
       button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
     });
@@ -1460,6 +1557,7 @@
       renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value), state.chartTypes.leaveDaysChart || "bar");
       renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value), state.chartTypes.divisionMixChart || "stacked-bar");
       renderChoiceChart("descriptionChart", els.descriptionChart, descriptionKeywordCounts(activityRows), { color: "#4c6fb0", onClick: value => setSearch(value) });
+      renderDataQualityMonitor(rows);
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
     }
@@ -1745,6 +1843,157 @@
       };
     }
 
+    function renderDataQualityMonitor(rows) {
+      if (!rows.length) {
+        els.qualityCards.innerHTML = "";
+        els.qualityList.innerHTML = `<div class="empty">${state.submissions.length ? "No records match the current filter." : "Upload or fetch data to review quality issues."}</div>`;
+        return;
+      }
+
+      const report = buildDataQualityReport(rows);
+      const categories = [
+        ["Missing divisions", report.counts.missingDivision],
+        ["Blank activity titles", report.counts.blankActivityTitle],
+        ["Missing travel dates", report.counts.missingTravelDates],
+        ["Leave duration issues", report.counts.leaveDurationIssue],
+        ["Duplicate names", report.counts.duplicateNames],
+        ["Incomplete submissions", report.counts.incompleteSubmission]
+      ];
+
+      els.qualityCards.innerHTML = categories.map(([label, count]) => `
+        <article class="quality-card ${count ? "risk" : "good"}">
+          <span>${escapeHtml(label)}</span>
+          <strong>${count}</strong>
+        </article>
+      `).join("");
+
+      if (!report.issues.length) {
+        els.qualityList.innerHTML = `<div class="empty">No data quality issues found in the current view.</div>`;
+        return;
+      }
+
+      els.qualityList.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Issue</th>
+              <th>Record</th>
+              <th>Division</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${report.issues.slice(0, 80).map(issue => `
+              <tr>
+                <td>${escapeHtml(issue.type)}</td>
+                <td>${escapeHtml(issue.record)}</td>
+                <td>${escapeHtml(issue.division)}</td>
+                <td>${escapeHtml(issue.detail)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function buildDataQualityReport(rows) {
+      const issues = [];
+      const counts = {
+        missingDivision: 0,
+        blankActivityTitle: 0,
+        missingTravelDates: 0,
+        leaveDurationIssue: 0,
+        duplicateNames: 0,
+        incompleteSubmission: 0
+      };
+
+      const names = rows.reduce((acc, row) => {
+        const name = normalize(row.name);
+        if (!name || name === "unnamed") return acc;
+        acc[name] = acc[name] || [];
+        acc[name].push(row);
+        return acc;
+      }, {});
+
+      rows.forEach(row => {
+        const record = qualityRecordLabel(row);
+        const division = row.division || "Unspecified";
+
+        if (!cleanText(row.division) || row.division === "Unspecified") {
+          counts.missingDivision += 1;
+          issues.push({ type: "Missing division", record, division, detail: "Division is blank or unspecified." });
+        }
+
+        if (!row.activities.length) {
+          counts.blankActivityTitle += 1;
+          issues.push({ type: "Blank activity title", record, division, detail: "No activity title was captured for this submission." });
+        }
+
+        row.activities.forEach((activity, index) => {
+          if (!cleanText(activity.title)) {
+            counts.blankActivityTitle += 1;
+            issues.push({ type: "Blank activity title", record, division, detail: `Activity ${index + 1} has no title.` });
+          }
+        });
+
+        row.travels.forEach((travel, index) => {
+          if (!cleanText(travel.start) || !cleanText(travel.end)) {
+            counts.missingTravelDates += 1;
+            issues.push({ type: "Missing travel dates", record, division, detail: `Travel ${index + 1} to ${travel.destination || "an unspecified destination"} is missing a start or end date.` });
+          }
+        });
+
+        row.leaves.forEach((leave, index) => {
+          const dateDays = dateSpanDays(leave.startRaw, leave.endRaw);
+          const parsedDays = Number(leave.days) || 0;
+          const hasDuration = Boolean(cleanText(leave.duration));
+          const inconsistent = (hasDuration && parsedDays <= 0) || (dateDays > 0 && parsedDays > 0 && Math.abs(dateDays - parsedDays) > 1);
+          if (inconsistent) {
+            counts.leaveDurationIssue += 1;
+            issues.push({ type: "Leave duration issue", record, division, detail: `Leave ${index + 1} duration is ${leave.duration || "blank"} while date span suggests ${dateDays ? formatDays(dateDays) : "an unavailable date span"}.` });
+          }
+        });
+
+        const incompleteReasons = [];
+        if (!cleanText(row.name) || row.name === "Unnamed") incompleteReasons.push("missing name");
+        if (!cleanText(row.designation) || row.designation === "Unspecified") incompleteReasons.push("missing designation");
+        if (!cleanText(row.completionTime)) incompleteReasons.push("missing completion time");
+        if (!row.activities.length && !row.travels.length && !row.leaves.length) incompleteReasons.push("no activity, travel, or leave data");
+        if (incompleteReasons.length) {
+          counts.incompleteSubmission += 1;
+          issues.push({ type: "Incomplete submission", record, division, detail: incompleteReasons.join("; ") + "." });
+        }
+      });
+
+      Object.entries(names).forEach(([, duplicates]) => {
+        if (duplicates.length <= 1) return;
+        counts.duplicateNames += duplicates.length;
+        duplicates.forEach(row => {
+          issues.push({
+            type: "Duplicate name",
+            record: qualityRecordLabel(row),
+            division: row.division || "Unspecified",
+            detail: `${row.name} appears in ${duplicates.length} visible submissions.`
+          });
+        });
+      });
+
+      return { counts, issues };
+    }
+
+    function qualityRecordLabel(row) {
+      const name = cleanText(row.name) || "Unnamed";
+      const id = cleanText(row.rowId);
+      return id ? `${id} - ${name}` : name;
+    }
+
+    function dateSpanDays(start, end) {
+      const startDate = excelDateToDate(start);
+      const endDate = excelDateToDate(end);
+      if (!startDate || !endDate || endDate < startDate) return 0;
+      return Math.round((endDate - startDate) / 86400000) + 1;
+    }
+
     function handleSummaryAction(action) {
       const value = state.summaryActions[action];
       if (!value) return;
@@ -1919,6 +2168,7 @@
         },
         { type: "html", title: "Auto Executive Brief", body: els.autoExecutiveBrief.innerHTML || "<p>No executive brief is available.</p>" },
         { type: "html", title: "Smart Insight Cards", body: els.smartInsightCards.innerHTML || "<p>No smart insights are available.</p>" },
+        { type: "html", title: "Data Quality Monitor", body: buildPresentationQualityHtml(rows) },
         { type: "chart", title: "Submissions by Division", chartId: "divisionChart" },
         { type: "chart", title: "Activity Status / Count", chartId: "statusChart" },
         { type: "chart", title: "Activities by Month", chartId: "activityMonthChart" },
@@ -1929,6 +2179,22 @@
         { type: "chart", title: "Division Activity Mix", chartId: "divisionMixChart" },
         { type: "chart", title: "Description Keywords", chartId: "descriptionChart" }
       ];
+    }
+
+    function buildPresentationQualityHtml(rows) {
+      const report = buildDataQualityReport(rows);
+      const total = report.issues.length;
+      if (!total) {
+        return `<div class="presentation-metric"><span>Quality Status</span><strong>Clean</strong><p>No data quality issues found in the current view.</p></div>`;
+      }
+      return `
+        ${Object.entries(report.counts).map(([key, value]) => `
+          <div class="presentation-metric">
+            <span>${escapeHtml(titleFromCamel(key))}</span>
+            <strong>${value}</strong>
+          </div>
+        `).join("")}
+      `;
     }
 
     function renderPresentationSlide() {
@@ -2599,6 +2865,12 @@
         .filter(([, value]) => Number(value) > 0)
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit);
+    }
+
+    function titleFromCamel(value) {
+      return cleanText(value)
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/^./, char => char.toUpperCase());
     }
 
     function unique(values) {
