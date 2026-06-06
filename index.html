@@ -292,6 +292,36 @@
       line-height: 1.25;
     }
 
+    .auto-brief {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .brief-item {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      padding: 16px;
+    }
+
+    .brief-item span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .brief-item p {
+      margin: 0;
+      color: #304158;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -484,6 +514,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .auto-brief {
+        grid-template-columns: 1fr;
+      }
+
       .detail-grid {
         grid-template-columns: 1fr;
       }
@@ -633,6 +667,7 @@
             <strong id="summaryLeaveLeader">-</strong>
           </button>
         </div>
+        <div class="auto-brief" id="autoExecutiveBrief" aria-label="Auto executive brief"></div>
       </div>
     </section>
 
@@ -824,6 +859,7 @@
       summaryTopStatus: document.getElementById("summaryTopStatus"),
       summaryTopTravel: document.getElementById("summaryTopTravel"),
       summaryLeaveLeader: document.getElementById("summaryLeaveLeader"),
+      autoExecutiveBrief: document.getElementById("autoExecutiveBrief"),
       tableWrap: document.getElementById("tableWrap"),
       recordNote: document.getElementById("recordNote")
     };
@@ -1137,14 +1173,25 @@
         els.summaryTopStatus.textContent = "-";
         els.summaryTopTravel.textContent = "-";
         els.summaryLeaveLeader.textContent = "-";
+        els.autoExecutiveBrief.innerHTML = "";
         return;
       }
 
-      const topDivision = topEntry(counts(rows.map(row => row.division)));
-      const topStatus = topEntry(counts(activityRows.map(row => row.status)));
-      const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
-      const topEventType = topEntry(counts(travelRows.map(row => row.eventType)));
-      const leaveLeader = topEntry(sumByDivision(leaveRows, "days"));
+      const divisionCounts = counts(rows.map(row => row.division));
+      const activityStatusCounts = counts(activityRows.map(row => row.status));
+      const travelDestinationCounts = counts(travelRows.map(row => row.destination));
+      const travelEventCounts = counts(travelRows.map(row => row.eventType));
+      const leaveDaysByDivision = sumByDivision(leaveRows, "days");
+      const activityMonths = countsByMonth(activityRows);
+      const descriptionKeywords = descriptionKeywordCounts(activityRows);
+      const divisionMix = buildDivisionMix(rows);
+      const topDivision = topEntry(divisionCounts);
+      const topStatus = topEntry(activityStatusCounts);
+      const topTravel = topEntry(travelDestinationCounts);
+      const topEventType = topEntry(travelEventCounts);
+      const leaveLeader = topEntry(leaveDaysByDivision);
+      const topMonth = topEntry(activityMonths);
+      const topKeyword = topEntry(descriptionKeywords);
       state.summaryActions = {
         division: topDivision ? topDivision[0] : "",
         status: topStatus ? topStatus[0] : "",
@@ -1170,7 +1217,106 @@
       els.summaryTopStatus.textContent = statusText;
       els.summaryTopTravel.textContent = travelText;
       els.summaryLeaveLeader.textContent = leaveText;
+      els.autoExecutiveBrief.innerHTML = buildExecutiveBriefHtml({
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
+        topMonth,
+        topKeyword,
+        leaveLeader
+      });
       updateSummaryActiveState();
+    }
+
+    function buildExecutiveBriefHtml(context) {
+      const {
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
+        topMonth,
+        topKeyword,
+        leaveLeader
+      } = context;
+
+      const activeDivisions = Object.keys(divisionCounts).length;
+      const completionRate = activityRows.length && topStatus && normalize(topStatus[0]).includes("complete")
+        ? Math.round((topStatus[1] / activityRows.length) * 100)
+        : null;
+      const travelShare = rows.length ? Math.round((travelRows.length / rows.length) * 100) : 0;
+      const leaveTotal = leaveRows.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      const mixLeader = topEntry(Object.fromEntries(Object.entries(divisionMix).map(([division, mix]) => [division, mix.activities + mix.travels + mix.leaves])));
+      const topStatuses = topEntries(activityStatusCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+      const topDestinations = topEntries(travelDestinationCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+      const topEvents = topEntries(travelEventCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
+
+      const activityBrief = [
+        `${activityRows.length} activit${activityRows.length === 1 ? "y is" : "ies are"} captured across ${activeDivisions} division${activeDivisions === 1 ? "" : "s"}.`,
+        topStatus ? `${topStatus[0]} is the leading activity status${completionRate !== null ? `, representing about ${completionRate}% of activities` : ""}.` : "No dominant activity status is available.",
+        topMonth ? `${topMonth[0]} is the most active reporting month with ${topMonth[1]} activit${topMonth[1] === 1 ? "y" : "ies"}.` : "",
+        topKeyword ? `Common description language points to ${topKeyword[0]} as a recurring theme.` : ""
+      ].filter(Boolean).join(" ");
+
+      const travelBrief = travelRows.length
+        ? [
+            `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"} appear in the current view, equivalent to about ${travelShare}% of submissions.`,
+            topTravel ? `${topTravel[0]} is the leading destination.` : "",
+            topEventType ? `${topEventType[0]} is the most frequent travel event type.` : "",
+            topDestinations ? `Top destinations: ${topDestinations}.` : "",
+            topEvents ? `Top event types: ${topEvents}.` : ""
+          ].filter(Boolean).join(" ")
+        : "No foreign travel records are present in the current view.";
+
+      const leaveBrief = leaveRows.length
+        ? [
+            `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} are captured, totaling ${formatDays(leaveTotal)} where durations are available.`,
+            leaveLeader ? `${leaveLeader[0]} accounts for the highest leave-day total at ${formatDays(leaveLeader[1])}.` : "",
+            leaveRows.length > rows.length ? "Multiple leave entries are present for some submissions." : "Leave records are not concentrated above submission count."
+          ].filter(Boolean).join(" ")
+        : "No leave records are present in the current view.";
+
+      const divisionBrief = [
+        topDivision ? `${topDivision[0]} leads submissions with ${topDivision[1]} record${topDivision[1] === 1 ? "" : "s"}.` : "No leading division is available.",
+        mixLeader ? `${mixLeader[0]} has the broadest combined footprint across activities, travel, and leave with ${mixLeader[1]} total item${mixLeader[1] === 1 ? "" : "s"}.` : "",
+        topStatuses ? `Activity status spread: ${topStatuses}.` : ""
+      ].filter(Boolean).join(" ");
+
+      return [
+        briefCard("Activity Pattern", activityBrief),
+        briefCard("Travel Highlights", travelBrief),
+        briefCard("Leave Observations", leaveBrief),
+        briefCard("Division Trends", divisionBrief)
+      ].join("");
+    }
+
+    function briefCard(title, body) {
+      return `
+        <article class="brief-item">
+          <span>${escapeHtml(title)}</span>
+          <p>${escapeHtml(body)}</p>
+        </article>
+      `;
     }
 
     function handleSummaryAction(action) {
@@ -1822,6 +1968,13 @@
       const entries = Object.entries(data).filter(([, value]) => Number(value) > 0);
       if (!entries.length) return null;
       return entries.sort((a, b) => b[1] - a[1])[0];
+    }
+
+    function topEntries(data, limit) {
+      return Object.entries(data)
+        .filter(([, value]) => Number(value) > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit);
     }
 
     function unique(values) {
