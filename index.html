@@ -322,6 +322,63 @@
       line-height: 1.55;
     }
 
+    .insight-cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .insight-card {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 16px;
+      min-height: 128px;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .insight-card:hover {
+      border-color: var(--nca-gold);
+      box-shadow: 0 12px 24px rgba(11, 58, 120, 0.13);
+      transform: translateY(-1px);
+    }
+
+    .insight-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .insight-card strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--nca-blue-deep);
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .insight-card p {
+      margin: 10px 0 0;
+      color: #3a4b63;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .insight-card.risk {
+      border-left: 5px solid var(--nca-red);
+    }
+
+    .insight-card.watch {
+      border-left: 5px solid var(--nca-gold);
+    }
+
+    .insight-card.good {
+      border-left: 5px solid var(--nca-green);
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -518,6 +575,10 @@
         grid-template-columns: 1fr;
       }
 
+      .insight-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .detail-grid {
         grid-template-columns: 1fr;
       }
@@ -547,6 +608,10 @@
       }
 
       .summary-highlights {
+        grid-template-columns: 1fr;
+      }
+
+      .insight-cards {
         grid-template-columns: 1fr;
       }
 
@@ -668,6 +733,7 @@
           </button>
         </div>
         <div class="auto-brief" id="autoExecutiveBrief" aria-label="Auto executive brief"></div>
+        <div class="insight-cards" id="smartInsightCards" aria-label="Smart insight cards"></div>
       </div>
     </section>
 
@@ -860,6 +926,7 @@
       summaryTopTravel: document.getElementById("summaryTopTravel"),
       summaryLeaveLeader: document.getElementById("summaryLeaveLeader"),
       autoExecutiveBrief: document.getElementById("autoExecutiveBrief"),
+      smartInsightCards: document.getElementById("smartInsightCards"),
       tableWrap: document.getElementById("tableWrap"),
       recordNote: document.getElementById("recordNote")
     };
@@ -1174,6 +1241,7 @@
         els.summaryTopTravel.textContent = "-";
         els.summaryLeaveLeader.textContent = "-";
         els.autoExecutiveBrief.innerHTML = "";
+        els.smartInsightCards.innerHTML = "";
         return;
       }
 
@@ -1234,6 +1302,24 @@
         topEventType,
         topMonth,
         topKeyword,
+        leaveLeader
+      });
+      els.smartInsightCards.innerHTML = buildSmartInsightCardsHtml({
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        travelDestinationCounts,
+        travelEventCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        descriptionKeywords,
+        topDivision,
+        topStatus,
+        topTravel,
+        topEventType,
         leaveLeader
       });
       updateSummaryActiveState();
@@ -1317,6 +1403,112 @@
           <p>${escapeHtml(body)}</p>
         </article>
       `;
+    }
+
+    function buildSmartInsightCardsHtml(context) {
+      const {
+        rows,
+        activityRows,
+        travelRows,
+        leaveRows,
+        divisionCounts,
+        activityStatusCounts,
+        leaveDaysByDivision,
+        divisionMix,
+        descriptionKeywords,
+        topDivision,
+        topTravel,
+        topEventType,
+        leaveLeader
+      } = context;
+
+      const totalSubmissions = rows.length;
+      const topDivisionShare = topDivision && totalSubmissions ? Math.round((topDivision[1] / totalSubmissions) * 100) : 0;
+      const divisionRiskLevel = topDivisionShare >= 70 ? "risk" : topDivisionShare >= 45 ? "watch" : "good";
+      const concentrationText = topDivision
+        ? `${topDivision[0]} holds ${topDivisionShare}% of visible submissions.`
+        : "No division concentration is available.";
+      const concentrationAdvice = topDivisionShare >= 70
+        ? "High concentration; review whether reporting is skewed toward one unit."
+        : topDivisionShare >= 45
+          ? "Moderate concentration; useful to compare with expected participation."
+          : "Balanced participation across visible divisions.";
+
+      const travelByDivision = travelRows.reduce((acc, row) => {
+        const division = row.parent.division || "Unspecified";
+        acc[division] = (acc[division] || 0) + 1;
+        return acc;
+      }, {});
+      const travelLeader = topEntry(travelByDivision);
+      const travelShare = travelLeader && travelRows.length ? Math.round((travelLeader[1] / travelRows.length) * 100) : 0;
+      const travelClass = travelShare >= 65 ? "watch" : "good";
+      const travelTitle = travelLeader ? travelLeader[0] : "None";
+      const travelBody = travelLeader
+        ? `${travelLeader[0]} accounts for ${travelLeader[1]} travel record${travelLeader[1] === 1 ? "" : "s"}${topTravel ? `, led by ${topTravel[0]}` : ""}${topEventType ? ` under ${topEventType[0]}` : ""}.`
+        : "No travel-heavy division is visible in the current view.";
+
+      const leaveClass = leaveLeader && Number(leaveLeader[1]) >= 10 ? "watch" : "good";
+      const leaveTitle = leaveLeader ? leaveLeader[0] : "None";
+      const leaveBody = leaveLeader
+        ? `${leaveLeader[0]} records the highest leave total at ${formatDays(leaveLeader[1])}. ${leaveRows.length > rows.length ? "Multiple leave entries appear within some submissions." : "Leave entries appear broadly in line with submission count."}`
+        : "No leave pattern is available in the current view.";
+
+      const completeness = dataCompleteness(rows);
+      const completenessClass = completeness.missingCount > 0 ? "watch" : "good";
+      const completenessTitle = completeness.missingCount > 0 ? `${completeness.missingCount} gap${completeness.missingCount === 1 ? "" : "s"}` : "Clean";
+      const completenessBody = completeness.missingCount > 0
+        ? `${completeness.summary} Review these before final reporting.`
+        : "Core fields and activity descriptions are complete for the visible records.";
+
+      const activityFootprint = topEntry(Object.fromEntries(Object.entries(divisionMix).map(([division, mix]) => [division, mix.activities])));
+      const keywordLeader = topEntry(descriptionKeywords);
+      const activityTitle = activityFootprint ? activityFootprint[0] : (topDivision ? topDivision[0] : "None");
+      const activityBody = activityFootprint
+        ? `${activityFootprint[0]} is the most active division by activity volume with ${activityFootprint[1]} activit${activityFootprint[1] === 1 ? "y" : "ies"}.${keywordLeader ? ` Descriptions frequently reference "${keywordLeader[0]}".` : ""}`
+        : "No activity-heavy division is visible in the current view.";
+
+      return [
+        insightCard("Most Active Division", activityTitle, activityBody, "good"),
+        insightCard("Activity Concentration Risk", topDivision ? topDivision[0] : "None", `${concentrationText} ${concentrationAdvice}`, divisionRiskLevel),
+        insightCard("Travel-Heavy Unit", travelTitle, travelBody, travelClass),
+        insightCard("Leave Pattern Observation", leaveTitle, leaveBody, leaveClass),
+        insightCard("Data Completeness Issue", completenessTitle, completenessBody, completenessClass)
+      ].join("");
+    }
+
+    function insightCard(label, title, body, status) {
+      return `
+        <article class="insight-card ${escapeHtml(status || "good")}">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(title)}</strong>
+          <p>${escapeHtml(body)}</p>
+        </article>
+      `;
+    }
+
+    function dataCompleteness(rows) {
+      let missingDivision = 0;
+      let missingDesignation = 0;
+      let missingActivities = 0;
+      let missingDescriptions = 0;
+
+      rows.forEach(row => {
+        if (!cleanText(row.division) || row.division === "Unspecified") missingDivision += 1;
+        if (!cleanText(row.designation) || row.designation === "Unspecified") missingDesignation += 1;
+        if (!row.activities.length) missingActivities += 1;
+        missingDescriptions += row.activities.filter(activity => !cleanText(activity.description)).length;
+      });
+
+      const parts = [];
+      if (missingDivision) parts.push(`${missingDivision} missing division`);
+      if (missingDesignation) parts.push(`${missingDesignation} missing designation`);
+      if (missingActivities) parts.push(`${missingActivities} without activities`);
+      if (missingDescriptions) parts.push(`${missingDescriptions} activity description gap${missingDescriptions === 1 ? "" : "s"}`);
+
+      return {
+        missingCount: missingDivision + missingDesignation + missingActivities + missingDescriptions,
+        summary: parts.length ? parts.join("; ") + "." : ""
+      };
     }
 
     function handleSummaryAction(action) {
