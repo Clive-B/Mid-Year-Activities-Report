@@ -37,9 +37,9 @@
       inset: 0;
       z-index: -2;
       background:
-        linear-gradient(rgba(245, 249, 253, 0.7), rgba(245, 249, 253, 0.86)),
-        url("images.jpg") center 155px / min(720px, 90vw) auto no-repeat;
-      filter: saturate(0.72);
+        linear-gradient(rgba(245, 249, 253, 0.48), rgba(245, 249, 253, 0.7)),
+        url("images.jpg") center 140px / min(980px, 96vw) auto no-repeat;
+      filter: saturate(0.82) contrast(1.05);
     }
 
     body::after {
@@ -48,8 +48,8 @@
       inset: 0;
       z-index: -1;
       background:
-        radial-gradient(circle at 18% 8%, rgba(246, 189, 25, 0.18), transparent 24%),
-        linear-gradient(90deg, rgba(255,255,255,0.86), rgba(255,255,255,0.42), rgba(255,255,255,0.86));
+        radial-gradient(circle at 18% 8%, rgba(246, 189, 25, 0.16), transparent 24%),
+        linear-gradient(90deg, rgba(255,255,255,0.76), rgba(255,255,255,0.24), rgba(255,255,255,0.76));
       pointer-events: none;
     }
 
@@ -305,12 +305,64 @@
       padding: 24px;
     }
 
+    .chart-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
     .chart-panel h2,
     .table-panel h2 {
-      margin: 0 0 18px;
+      margin: 0;
       color: var(--nca-blue-deep);
       font-size: 23px;
       letter-spacing: 0;
+    }
+
+    .table-panel h2 {
+      margin-bottom: 18px;
+    }
+
+    .chart-tools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .chart-type {
+      width: 142px;
+      min-height: 38px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 0 10px;
+    }
+
+    .icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--nca-blue);
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+
+    .icon-button:hover,
+    .icon-button:focus-visible {
+      border-color: var(--nca-gold);
+      box-shadow: 0 10px 20px rgba(11, 58, 120, 0.12);
+      outline: none;
+      transform: translateY(-1px);
     }
 
     .chart {
@@ -439,6 +491,14 @@
       .grid {
         grid-template-columns: 1fr;
       }
+
+      .chart-head {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-tools {
+        justify-content: flex-start;
+      }
     }
 
     @media (max-width: 720px) {
@@ -469,7 +529,8 @@
 
       .toolbar,
       .filters,
-      .button {
+      .button,
+      .chart-tools {
         display: none !important;
       }
 
@@ -579,35 +640,113 @@
 
     <section class="grid">
       <article class="chart-panel">
-        <h2>Submissions by Division</h2>
+        <div class="chart-head">
+          <h2>Submissions by Division</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="divisionChart" aria-label="Submissions by Division chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="divisionChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="divisionChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Leave by Type</h2>
+        <div class="chart-head">
+          <h2>Leave by Type</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="leaveChart" aria-label="Leave by Type chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="leaveChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="leaveChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Foreign Travel by Destination</h2>
+        <div class="chart-head">
+          <h2>Foreign Travel by Destination</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="travelChart" aria-label="Foreign Travel by Destination chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="travelChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="travelChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Activity Status / Count</h2>
+        <div class="chart-head">
+          <h2>Activity Status / Count</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="statusChart" aria-label="Activity Status chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="statusChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="statusChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Activities by Month</h2>
+        <div class="chart-head">
+          <h2>Activities by Month</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="activityMonthChart" aria-label="Activities by Month chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="line">Line</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="activityMonthChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="activityMonthChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Foreign Travel by Event Type</h2>
+        <div class="chart-head">
+          <h2>Foreign Travel by Event Type</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="travelEventChart" aria-label="Foreign Travel by Event Type chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="travelEventChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="travelEventChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Leave Days by Division</h2>
+        <div class="chart-head">
+          <h2>Leave Days by Division</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="leaveDaysChart" aria-label="Leave Days by Division chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="leaveDaysChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="leaveDaysChart"></div>
       </article>
       <article class="chart-panel">
-        <h2>Division Activity Mix</h2>
+        <div class="chart-head">
+          <h2>Division Activity Mix</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="divisionMixChart" aria-label="Division Activity Mix chart type">
+              <option value="stacked-bar">Stacked Bar</option>
+              <option value="stacked-column">Stacked Column</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="divisionMixChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
         <div class="chart" id="divisionMixChart"></div>
       </article>
     </section>
@@ -629,7 +768,8 @@
       filtered: [],
       fileName: "",
       summaryActions: {},
-      expandedRowId: ""
+      expandedRowId: "",
+      chartTypes: {}
     };
 
     const els = {
@@ -679,6 +819,16 @@
           handleKpiAction(card.dataset.kpiAction);
         }
       });
+    });
+    document.querySelectorAll("[data-chart-type]").forEach(select => {
+      state.chartTypes[select.dataset.chartType] = select.value;
+      select.addEventListener("change", () => {
+        state.chartTypes[select.dataset.chartType] = select.value;
+        render();
+      });
+    });
+    document.querySelectorAll("[data-download-chart]").forEach(button => {
+      button.addEventListener("click", () => downloadChart(button.dataset.downloadChart));
     });
 
     function handleFileUpload(event) {
@@ -848,14 +998,14 @@
       els.leaveCount.textContent = leaveRows.length;
 
       renderExecutiveSummary(rows, activityRows, travelRows, leaveRows);
-      renderBarChart(els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
-      renderBarChart(els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052", onClick: value => setSearch(value) });
-      renderBarChart(els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true, onClick: value => setSearch(value) });
-      renderBarChart(els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
-      renderBarChart(els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
-      renderBarChart(els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
-      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value));
-      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value));
+      renderChoiceChart("divisionChart", els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
+      renderChoiceChart("leaveChart", els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052", onClick: value => setSearch(value) });
+      renderChoiceChart("travelChart", els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true, onClick: value => setSearch(value) });
+      renderChoiceChart("statusChart", els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
+      renderChoiceChart("activityMonthChart", els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
+      renderChoiceChart("travelEventChart", els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
+      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value), state.chartTypes.leaveDaysChart || "bar");
+      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value), state.chartTypes.divisionMixChart || "stacked-bar");
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
     }
@@ -948,6 +1098,19 @@
       });
     }
 
+    function renderChoiceChart(id, target, data, options = {}) {
+      const type = state.chartTypes[id] || "bar";
+      if (type === "column") {
+        renderColumnChart(target, data, options);
+      } else if (type === "donut") {
+        renderDonutChart(target, data, options);
+      } else if (type === "line") {
+        renderLineChart(target, data, options);
+      } else {
+        renderBarChart(target, data, options);
+      }
+    }
+
     function renderBarChart(target, data, options = {}) {
       const entries = Object.entries(data).sort((a, b) => {
         if (options.sort === "month") return monthSortValue(a[0]) - monthSortValue(b[0]);
@@ -963,7 +1126,7 @@
       const height = Math.max(260, entries.length * rowHeight + 44);
       const max = Math.max(...entries.map(([, value]) => value));
       const color = options.color || "#0b3a78";
-      const textColor = options.darkText ? "#2c2d31" : "#ffffff";
+      const valueFormatter = options.valueFormatter || formatNumber;
       const valueSuffix = options.valueSuffix || "";
 
       const rows = entries.map(([label, value], i) => {
@@ -993,7 +1156,140 @@
       }
     }
 
-    function renderLeaveDaysChart(target, data, onClick) {
+    function renderColumnChart(target, data, options = {}) {
+      const entries = chartEntries(data, options).slice(0, 8);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const baseY = 224;
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const slot = 640 / entries.length;
+      const barWidth = Math.min(52, Math.max(22, slot * 0.58));
+      const color = options.color || "#0b3a78";
+      const textColor = options.darkText ? "#2c2d31" : "#ffffff";
+
+      const bars = entries.map(([label, value], i) => {
+        const numericValue = Number(value) || 0;
+        const barHeight = Math.max(8, Math.round((numericValue / max) * 150));
+        const x = 80 + i * slot + (slot - barWidth) / 2;
+        const y = baseY - barHeight;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        const click = options.onClick ? ` data-chart-value="${safeLabel}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" fill="${color}"></rect>
+            <text x="${x + barWidth / 2}" y="${y - 8}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="middle">${valueFormatter(numericValue)}</text>
+            <text x="${x + barWidth / 2}" y="${baseY + 24}" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeLabel, 12)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Column chart">
+        <line x1="58" y1="${baseY}" x2="722" y2="${baseY}" stroke="#dce6f2" stroke-width="2"></line>
+        ${bars}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderDonutChart(target, data, options = {}) {
+      const entries = chartEntries(data, options).slice(0, 8);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const total = entries.reduce((sum, [, value]) => sum + (Number(value) || 0), 0);
+      const cx = 210;
+      const cy = 145;
+      const radius = 84;
+      const stroke = 34;
+      const circumference = 2 * Math.PI * radius;
+      const colors = ["#0b3a78", "#f6bd19", "#149052", "#cf1f32", "#4c6fb0", "#7c8798", "#d98416", "#36a7c7"];
+      let offset = 0;
+
+      const arcs = entries.map(([label, value], i) => {
+        const numericValue = Number(value) || 0;
+        const length = total ? (numericValue / total) * circumference : 0;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        const arc = `
+          <circle data-chart-value="${safeLabel}" cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${colors[i % colors.length]}" stroke-width="${stroke}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" style="cursor:pointer">
+            <title>${safeLabel}: ${formatNumber(numericValue)}</title>
+          </circle>
+        `;
+        offset += length;
+        return arc;
+      }).join("");
+
+      const legend = entries.map(([label, value], i) => {
+        const y = 58 + i * 25;
+        const safeLabel = escapeHtml(label || "Unspecified");
+        return `
+          <g data-chart-value="${safeLabel}" style="cursor:pointer">
+            <rect x="390" y="${y - 11}" width="13" height="13" rx="2" fill="${colors[i % colors.length]}"></rect>
+            <text x="414" y="${y}" fill="#34445c" font-size="13" font-weight="700">${truncate(safeLabel, 24)}</text>
+            <text x="650" y="${y}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="end">${formatNumber(value)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Donut chart">
+        ${arcs}
+        <circle cx="${cx}" cy="${cy}" r="52" fill="white"></circle>
+        <text x="${cx}" y="${cy - 4}" fill="#0b3a78" font-size="28" font-weight="900" text-anchor="middle">${formatNumber(total)}</text>
+        <text x="${cx}" y="${cy + 20}" fill="#66758d" font-size="12" font-weight="800" text-anchor="middle">TOTAL</text>
+        ${legend}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderLineChart(target, data, options = {}) {
+      const entries = chartEntries(data, options);
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const height = 300;
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const minX = 76;
+      const maxX = 700;
+      const minY = 218;
+      const maxY = 58;
+      const step = entries.length > 1 ? (maxX - minX) / (entries.length - 1) : 0;
+      const points = entries.map(([, value], i) => {
+        const x = entries.length > 1 ? minX + i * step : (minX + maxX) / 2;
+        const y = minY - ((Number(value) || 0) / max) * (minY - maxY);
+        return { x, y };
+      });
+      const pointList = points.map(point => `${point.x},${point.y}`).join(" ");
+
+      const markers = entries.map(([label, value], i) => {
+        const safeLabel = escapeHtml(label || "Unspecified");
+        return `
+          <g data-chart-value="${safeLabel}" style="cursor:pointer">
+            <circle cx="${points[i].x}" cy="${points[i].y}" r="6" fill="${options.color || "#0b3a78"}"></circle>
+            <text x="${points[i].x}" y="${points[i].y - 12}" fill="#1e2a3c" font-size="12" font-weight="800" text-anchor="middle">${formatNumber(value)}</text>
+            <text x="${points[i].x}" y="248" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeLabel, 11)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart">
+        <line x1="${minX}" y1="${minY}" x2="${maxX}" y2="${minY}" stroke="#dce6f2" stroke-width="2"></line>
+        <polyline points="${pointList}" fill="none" stroke="${options.color || "#0b3a78"}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        ${markers}
+      </svg>`;
+      attachChartClicks(target, options.onClick);
+    }
+
+    function renderLeaveDaysChart(target, data, onClick, type = "bar") {
       const entries = Object.entries(data)
         .filter(([, value]) => Number(value) > 0)
         .sort((a, b) => b[1] - a[1])
@@ -1001,6 +1297,11 @@
 
       if (!entries.length) {
         target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      if (type === "column") {
+        renderColumnChart(target, data, { color: "#f6bd19", darkText: true, valueFormatter: formatDays, onClick });
         return;
       }
 
@@ -1036,7 +1337,7 @@
       }
     }
 
-    function renderStackedChart(target, data, onClick) {
+    function renderStackedChart(target, data, onClick, type = "stacked-bar") {
       const entries = Object.entries(data)
         .map(([division, values]) => ({ division, ...values, total: values.activities + values.travels + values.leaves }))
         .filter(item => item.total > 0)
@@ -1045,6 +1346,11 @@
 
       if (!entries.length) {
         target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      if (type === "stacked-column") {
+        renderStackedColumnChart(target, entries, onClick);
         return;
       }
 
@@ -1095,6 +1401,57 @@
           node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
         });
       }
+    }
+
+    function renderStackedColumnChart(target, entries, onClick) {
+      const width = 760;
+      const height = 320;
+      const baseY = 226;
+      const max = Math.max(...entries.map(item => item.total));
+      const slot = 640 / entries.length;
+      const barWidth = Math.min(54, Math.max(24, slot * 0.6));
+      const colors = {
+        activities: "#0b3a78",
+        travels: "#f6bd19",
+        leaves: "#149052"
+      };
+
+      const columns = entries.map((item, i) => {
+        const x = 74 + i * slot + (slot - barWidth) / 2;
+        let y = baseY;
+        const segments = ["activities", "travels", "leaves"].map(key => {
+          const segmentHeight = item[key] ? Math.max(7, Math.round((item[key] / max) * 158)) : 0;
+          y -= segmentHeight;
+          return segmentHeight ? `<rect x="${x}" y="${y}" width="${barWidth}" height="${segmentHeight}" rx="3" fill="${colors[key]}"><title>${key}: ${item[key]}</title></rect>` : "";
+        }).join("");
+        const safeDivision = escapeHtml(item.division);
+        const click = onClick ? ` data-chart-value="${safeDivision}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            ${segments}
+            <text x="${x + barWidth / 2}" y="${y - 10}" fill="#1e2a3c" font-size="13" font-weight="800" text-anchor="middle">${item.total}</text>
+            <text x="${x + barWidth / 2}" y="${baseY + 24}" fill="#34445c" font-size="12" font-weight="700" text-anchor="middle">${truncate(safeDivision, 12)}</text>
+          </g>
+        `;
+      }).join("");
+
+      const legend = `
+        <g>
+          <rect x="84" y="292" width="12" height="12" fill="${colors.activities}"></rect>
+          <text x="102" y="302" fill="#53657d" font-size="12">Activities</text>
+          <rect x="206" y="292" width="12" height="12" fill="${colors.travels}"></rect>
+          <text x="224" y="302" fill="#53657d" font-size="12">Foreign travels</text>
+          <rect x="360" y="292" width="12" height="12" fill="${colors.leaves}"></rect>
+          <text x="378" y="302" fill="#53657d" font-size="12">Leave records</text>
+        </g>
+      `;
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked column chart">
+        <line x1="58" y1="${baseY}" x2="722" y2="${baseY}" stroke="#dce6f2" stroke-width="2"></line>
+        ${columns}
+        ${legend}
+      </svg>`;
+      attachChartClicks(target, onClick);
     }
 
     function renderTable(rows) {
@@ -1216,6 +1573,67 @@
     function setSearch(value) {
       els.searchInput.value = value;
       applyFilters();
+    }
+
+    function chartEntries(data, options = {}) {
+      return Object.entries(data).sort((a, b) => {
+        if (options.sort === "month") return monthSortValue(a[0]) - monthSortValue(b[0]);
+        return b[1] - a[1];
+      });
+    }
+
+    function attachChartClicks(target, onClick) {
+      if (!onClick) return;
+      target.querySelectorAll("[data-chart-value]").forEach(node => {
+        node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
+      });
+    }
+
+    function downloadChart(chartId) {
+      const chart = document.getElementById(chartId);
+      const svg = chart ? chart.querySelector("svg") : null;
+      if (!svg) return;
+
+      const copy = svg.cloneNode(true);
+      copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      const box = svg.viewBox.baseVal;
+      const width = box && box.width ? box.width : svg.clientWidth || 760;
+      const height = box && box.height ? box.height : svg.clientHeight || 300;
+      copy.setAttribute("width", width);
+      copy.setAttribute("height", height);
+
+      const serializer = new XMLSerializer();
+      const source = serializer.serializeToString(copy);
+      const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      const image = new Image();
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement("a");
+        link.download = `${slugify(chartId)}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+
+      image.onerror = () => URL.revokeObjectURL(url);
+      image.src = url;
+    }
+
+    function slugify(value) {
+      return cleanText(value)
+        .replace(/([a-z])([A-Z])/g, "$1-$2")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
     }
 
     function counts(values) {
