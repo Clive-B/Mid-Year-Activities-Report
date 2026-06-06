@@ -757,6 +757,20 @@
         </div>
         <div class="chart" id="divisionMixChart"></div>
       </article>
+      <article class="chart-panel">
+        <div class="chart-head">
+          <h2>Description Keywords</h2>
+          <div class="chart-tools">
+            <select class="chart-type" data-chart-type="descriptionChart" aria-label="Description Keywords chart type">
+              <option value="bar">Bar</option>
+              <option value="column">Column</option>
+              <option value="donut">Donut</option>
+            </select>
+            <button class="icon-button" type="button" data-download-chart="descriptionChart" title="Download chart">&#8681;</button>
+          </div>
+        </div>
+        <div class="chart" id="descriptionChart"></div>
+      </article>
     </section>
 
     <section class="table-panel">
@@ -804,6 +818,7 @@
       travelEventChart: document.getElementById("travelEventChart"),
       leaveDaysChart: document.getElementById("leaveDaysChart"),
       divisionMixChart: document.getElementById("divisionMixChart"),
+      descriptionChart: document.getElementById("descriptionChart"),
       summaryNarrative: document.getElementById("summaryNarrative"),
       summaryTopDivision: document.getElementById("summaryTopDivision"),
       summaryTopStatus: document.getElementById("summaryTopStatus"),
@@ -1107,6 +1122,7 @@
       renderChoiceChart("travelEventChart", els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
       renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value), state.chartTypes.leaveDaysChart || "bar");
       renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value), state.chartTypes.divisionMixChart || "stacked-bar");
+      renderChoiceChart("descriptionChart", els.descriptionChart, descriptionKeywordCounts(activityRows), { color: "#4c6fb0", onClick: value => setSearch(value) });
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
     }
@@ -1563,6 +1579,11 @@
 
       const tableRows = rows.map(row => {
         const activities = row.activities.map(a => `${escapeHtml(a.title)} <span class="pill ${normalize(a.status).includes("complete") ? "done" : ""}">${escapeHtml(a.status)}</span>`).join("<br>");
+        const descriptions = row.activities
+          .map(a => a.description)
+          .filter(Boolean)
+          .map(description => escapeHtml(description))
+          .join("<br>");
         const travels = row.travels.map(t => `${escapeHtml(t.destination)}${t.purpose ? ` - ${escapeHtml(t.purpose)}` : ""}`).join("<br>");
         const leaves = row.leaves.map(l => `${escapeHtml(l.type)}${l.duration ? ` - ${escapeHtml(l.duration)}` : ""}`).join("<br>");
         const expanded = state.expandedRowId === row.rowId;
@@ -1573,6 +1594,7 @@
             <td>${escapeHtml(row.division)}</td>
             <td>${escapeHtml(row.designation)}</td>
             <td>${activities || "<span class=\"small-note\">None</span>"}</td>
+            <td>${descriptions || "<span class=\"small-note\">None</span>"}</td>
             <td>${travels || "<span class=\"small-note\">None</span>"}</td>
             <td>${leaves || "<span class=\"small-note\">None</span>"}</td>
             <td>${escapeHtml(row.completionTime)}</td>
@@ -1590,6 +1612,7 @@
               <th>Division</th>
               <th>Designation</th>
               <th>Activities</th>
+              <th>Brief Descriptions</th>
               <th>Foreign Travels</th>
               <th>Leave</th>
               <th>Submitted</th>
@@ -1621,7 +1644,7 @@
 
       return `
         <tr class="detail-row">
-          <td colspan="8">
+          <td colspan="9">
             <div class="detail-grid">
               <div class="detail-box">
                 <h3>Activities</h3>
@@ -1769,6 +1792,28 @@
         acc[division].activities += row.activities.length;
         acc[division].travels += row.travels.length;
         acc[division].leaves += row.leaves.length;
+        return acc;
+      }, {});
+    }
+
+    function descriptionKeywordCounts(activityRows) {
+      const stopWords = new Set([
+        "and", "the", "for", "with", "from", "that", "this", "have", "has", "was", "were", "are", "been",
+        "into", "onto", "over", "under", "than", "then", "them", "they", "their", "there", "these", "those",
+        "a", "an", "to", "of", "in", "on", "at", "by", "or", "as", "is", "it", "we", "our", "be", "if",
+        "created", "creation", "produced", "production", "report", "reports", "activity", "activities"
+      ]);
+
+      return activityRows.reduce((acc, row) => {
+        cleanText(row.description)
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, " ")
+          .split(/\s+/)
+          .map(word => word.trim())
+          .filter(word => word.length > 2 && !stopWords.has(word))
+          .forEach(word => {
+            acc[word] = (acc[word] || 0) + 1;
+          });
         return acc;
       }, {});
     }
