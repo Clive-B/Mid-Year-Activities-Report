@@ -851,8 +851,12 @@
           const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1, defval: "" });
           state.submissions = parseRows(rows);
           populateFilters();
-          applyFilters();
-          els.fileState.textContent = `${file.name} loaded. ${state.submissions.length} submissions found.`;
+          try {
+            applyFilters();
+            els.fileState.textContent = `${file.name} loaded. ${state.submissions.length} submissions found.`;
+          } catch (renderError) {
+            els.fileState.textContent = `File loaded, but the dashboard could not render charts: ${renderError.message}`;
+          }
         } catch (error) {
           els.fileState.textContent = `Could not read file: ${error.message}`;
           resetDataOnly();
@@ -1126,7 +1130,7 @@
       const height = Math.max(260, entries.length * rowHeight + 44);
       const max = Math.max(...entries.map(([, value]) => value));
       const color = options.color || "#0b3a78";
-      const valueFormatter = options.valueFormatter || formatNumber;
+      const textColor = options.darkText ? "#2c2d31" : "#ffffff";
       const valueSuffix = options.valueSuffix || "";
 
       const rows = entries.map(([label, value], i) => {
@@ -1170,7 +1174,7 @@
       const slot = 640 / entries.length;
       const barWidth = Math.min(52, Math.max(22, slot * 0.58));
       const color = options.color || "#0b3a78";
-      const textColor = options.darkText ? "#2c2d31" : "#ffffff";
+      const valueFormatter = options.valueFormatter || formatNumber;
 
       const bars = entries.map(([label, value], i) => {
         const numericValue = Number(value) || 0;
