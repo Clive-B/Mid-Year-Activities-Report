@@ -530,6 +530,7 @@
     }
 
     .quality-panel {
+      display: block;
       margin-bottom: 26px;
       padding: 24px;
     }
@@ -1006,7 +1007,7 @@
       <div class="ask-answer" id="askAnswer">Upload or fetch data, then ask a question.</div>
     </section>
 
-    <section class="toolbar quality-panel" aria-label="Data Quality Monitor">
+    <section class="quality-panel card" aria-label="Data Quality Monitor">
       <div class="quality-head">
         <div>
           <div class="upload-title">Data Quality Monitor</div>
@@ -1263,7 +1264,7 @@
     els.askInput.addEventListener("keydown", event => {
       if (event.key === "Enter") askDashboard();
     });
-    els.qualityClearBtn.addEventListener("click", clearFilters);
+    els.qualityClearBtn.addEventListener("click", restoreFullDataView);
     document.querySelectorAll("[data-summary-action]").forEach(button => {
       button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
     });
@@ -1847,6 +1848,7 @@
       if (!rows.length) {
         els.qualityCards.innerHTML = "";
         els.qualityList.innerHTML = `<div class="empty">${state.submissions.length ? "No records match the current filter." : "Upload or fetch data to review quality issues."}</div>`;
+        els.qualityList.style.display = "block";
         return;
       }
 
@@ -1868,10 +1870,12 @@
       `).join("");
 
       if (!report.issues.length) {
-        els.qualityList.innerHTML = `<div class="empty">No data quality issues found in the current view.</div>`;
+        els.qualityList.innerHTML = "";
+        els.qualityList.style.display = "none";
         return;
       }
 
+      els.qualityList.style.display = "block";
       els.qualityList.innerHTML = `
         <table>
           <thead>
@@ -2714,6 +2718,17 @@
       els.designationFilter.value = "";
       els.searchInput.value = "";
       applyFilters();
+    }
+
+    function restoreFullDataView() {
+      els.divisionFilter.value = "";
+      els.designationFilter.value = "";
+      els.searchInput.value = "";
+      els.askInput.value = "";
+      state.expandedRowId = "";
+      applyFilters();
+      els.askAnswer.textContent = "Full data view restored.";
+      els.fileState.textContent = state.fileName ? `Full data view restored for ${state.fileName}.` : "Full data view restored.";
     }
 
     function resetDataOnly() {
