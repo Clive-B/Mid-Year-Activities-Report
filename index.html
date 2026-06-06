@@ -889,7 +889,7 @@
       els.fileState.textContent = "Fetching latest online Excel data...";
 
       try {
-        const response = await fetch(endpoint, { method: "GET", cache: "no-store" });
+        const response = await fetch(endpoint, { method: "POST", cache: "no-store" });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
