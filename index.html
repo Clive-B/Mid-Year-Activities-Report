@@ -545,7 +545,7 @@
 
     .quality-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(120px, 1fr));
+      grid-template-columns: repeat(8, minmax(120px, 1fr));
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -1011,7 +1011,7 @@
       <div class="quality-head">
         <div>
           <div class="upload-title">Data Quality Monitor</div>
-          <div class="upload-hint">Flags missing divisions, blank activity titles, missing travel dates, inconsistent leave duration, duplicate names, and incomplete submissions.</div>
+          <div class="upload-hint">Flags official divisions with no submissions, blank activity titles, missing travel dates, inconsistent leave duration, duplicate names, and incomplete submissions.</div>
         </div>
         <button class="button ghost" id="qualityClearBtn" type="button" title="Clear filters for full quality view">
           <span aria-hidden="true">&#8634;</span>
@@ -1835,13 +1835,16 @@
 
     function dataCompleteness(rows) {
       let missingDivision = 0;
+      let blankDivisionField = 0;
       let unknownDivision = 0;
       let missingDesignation = 0;
       let missingActivities = 0;
       let missingDescriptions = 0;
+      const presentDivisions = new Set(rows.filter(row => isKnownDivision(row.division)).map(row => divisionKey(row.division)));
+      missingDivision = KNOWN_DIVISIONS.filter(division => !presentDivisions.has(divisionKey(division))).length;
 
       rows.forEach(row => {
-        if (!cleanText(row.division) || row.division === "Unspecified") missingDivision += 1;
+        if (!cleanText(row.division) || row.division === "Unspecified") blankDivisionField += 1;
         if (cleanText(row.division) && row.division !== "Unspecified" && !isKnownDivision(row.division)) unknownDivision += 1;
         if (!cleanText(row.designation) || row.designation === "Unspecified") missingDesignation += 1;
         if (!row.activities.length) missingActivities += 1;
@@ -1849,14 +1852,15 @@
       });
 
       const parts = [];
-      if (missingDivision) parts.push(`${missingDivision} missing division`);
+      if (missingDivision) parts.push(`${missingDivision} official division${missingDivision === 1 ? "" : "s"} without submissions`);
+      if (blankDivisionField) parts.push(`${blankDivisionField} blank division field${blankDivisionField === 1 ? "" : "s"}`);
       if (unknownDivision) parts.push(`${unknownDivision} unknown division`);
       if (missingDesignation) parts.push(`${missingDesignation} missing designation`);
       if (missingActivities) parts.push(`${missingActivities} without activities`);
       if (missingDescriptions) parts.push(`${missingDescriptions} activity description gap${missingDescriptions === 1 ? "" : "s"}`);
 
       return {
-        missingCount: missingDivision + unknownDivision + missingDesignation + missingActivities + missingDescriptions,
+        missingCount: missingDivision + blankDivisionField + unknownDivision + missingDesignation + missingActivities + missingDescriptions,
         summary: parts.length ? parts.join("; ") + "." : ""
       };
     }
@@ -1872,6 +1876,7 @@
       const report = buildDataQualityReport(rows);
       const categories = [
         ["Missing divisions", report.counts.missingDivision],
+        ["Blank division fields", report.counts.blankDivisionField],
         ["Unknown divisions", report.counts.unknownDivision],
         ["Blank activity titles", report.counts.blankActivityTitle],
         ["Missing travel dates", report.counts.missingTravelDates],
@@ -1922,6 +1927,7 @@
       const issues = [];
       const counts = {
         missingDivision: 0,
+        blankDivisionField: 0,
         unknownDivision: 0,
         blankActivityTitle: 0,
         missingTravelDates: 0,
@@ -1937,14 +1943,25 @@
         acc[name].push(row);
         return acc;
       }, {});
+      const presentDivisions = new Set(rows.filter(row => isKnownDivision(row.division)).map(row => divisionKey(row.division)));
+      KNOWN_DIVISIONS.forEach(division => {
+        if (presentDivisions.has(divisionKey(division))) return;
+        counts.missingDivision += 1;
+        issues.push({
+          type: "Missing division",
+          record: "Division coverage",
+          division,
+          detail: `${division} has no visible submissions in the current data view.`
+        });
+      });
 
       rows.forEach(row => {
         const record = qualityRecordLabel(row);
         const division = row.division || "Unspecified";
 
         if (!cleanText(row.division) || row.division === "Unspecified") {
-          counts.missingDivision += 1;
-          issues.push({ type: "Missing division", record, division, detail: "Division is blank or unspecified." });
+          counts.blankDivisionField += 1;
+          issues.push({ type: "Blank division field", record, division, detail: "Division is blank or unspecified." });
         }
 
         if (cleanText(row.division) && row.division !== "Unspecified" && !isKnownDivision(row.division)) {
