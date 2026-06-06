@@ -250,6 +250,129 @@
       color: var(--nca-blue-deep);
     }
 
+    .presentation-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      grid-template-rows: auto 1fr auto;
+      background:
+        linear-gradient(rgba(246, 249, 253, 0.88), rgba(246, 249, 253, 0.94)),
+        url("images.jpg") center / cover no-repeat;
+      color: var(--ink);
+    }
+
+    .presentation-shell.is-open {
+      display: grid;
+    }
+
+    .presentation-top,
+    .presentation-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .presentation-bottom {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .presentation-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--nca-blue-deep);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .presentation-brand img {
+      width: 96px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .presentation-stage {
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      padding: 34px;
+    }
+
+    .presentation-slide {
+      width: min(1180px, 94vw);
+      min-height: min(680px, 74vh);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 28px 70px rgba(7, 32, 66, 0.18);
+      padding: clamp(24px, 4vw, 52px);
+    }
+
+    .presentation-slide h2 {
+      margin: 0 0 18px;
+      color: var(--nca-blue-deep);
+      font-size: clamp(30px, 4vw, 48px);
+      letter-spacing: 0;
+    }
+
+    .presentation-slide p {
+      color: #304158;
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .presentation-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .presentation-metric {
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      padding: 18px;
+    }
+
+    .presentation-metric span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .presentation-metric strong {
+      display: block;
+      margin-top: 10px;
+      color: var(--nca-blue-deep);
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .presentation-chart {
+      margin-top: 18px;
+      min-height: 360px;
+    }
+
+    .presentation-count {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .presentation-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
     .executive-summary {
       margin-bottom: 26px;
       padding: 24px 28px;
@@ -649,6 +772,16 @@
       .button {
         width: 100%;
       }
+
+      .presentation-top,
+      .presentation-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .presentation-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media print {
@@ -710,6 +843,10 @@
       <button class="button" id="printBtn" type="button" title="Print or save dashboard as PDF">
         <span aria-hidden="true">&#9635;</span>
         Print / Save as PDF
+      </button>
+      <button class="button ghost" id="presentationBtn" type="button" title="Open full-screen presentation mode">
+        <span aria-hidden="true">&#9658;</span>
+        Presentation
       </button>
       <button class="button secondary" id="resetBtn" type="button" title="Clear uploaded data and filters">
         <span aria-hidden="true">&#8634;</span>
@@ -931,6 +1068,29 @@
     <div class="footer">Generated dashboard template for NCA/RIPS Mid-Year Activity Report workflow.</div>
   </main>
 
+  <section class="presentation-shell" id="presentationShell" aria-label="Presentation mode" aria-hidden="true">
+    <div class="presentation-top">
+      <div class="presentation-brand">
+        <img src="IMG-20260305-WA0016-removebg-preview(2).png" alt="NCA logo">
+        <span>NCA Mid-Year Activity Report Dashboard</span>
+      </div>
+      <div class="presentation-controls">
+        <button class="button ghost" id="presentationDownloadBtn" type="button">Download Chart</button>
+        <button class="button secondary" id="presentationExitBtn" type="button">Exit</button>
+      </div>
+    </div>
+    <div class="presentation-stage">
+      <article class="presentation-slide" id="presentationSlide"></article>
+    </div>
+    <div class="presentation-bottom">
+      <span class="presentation-count" id="presentationCount">Slide 0 of 0</span>
+      <div class="presentation-controls">
+        <button class="button ghost" id="presentationPrevBtn" type="button">Previous</button>
+        <button class="button" id="presentationNextBtn" type="button">Next</button>
+      </div>
+    </div>
+  </section>
+
   <script>
     const state = {
       submissions: [],
@@ -939,7 +1099,9 @@
       summaryActions: {},
       expandedRowId: "",
       chartTypes: {},
-      onlineEndpoint: localStorage.getItem("ncaDashboardEndpoint") || ""
+      onlineEndpoint: localStorage.getItem("ncaDashboardEndpoint") || "",
+      presentationIndex: 0,
+      presentationSlides: []
     };
 
     const els = {
@@ -948,6 +1110,14 @@
       fetchOnlineBtn: document.getElementById("fetchOnlineBtn"),
       endpointBtn: document.getElementById("endpointBtn"),
       printBtn: document.getElementById("printBtn"),
+      presentationBtn: document.getElementById("presentationBtn"),
+      presentationShell: document.getElementById("presentationShell"),
+      presentationSlide: document.getElementById("presentationSlide"),
+      presentationCount: document.getElementById("presentationCount"),
+      presentationPrevBtn: document.getElementById("presentationPrevBtn"),
+      presentationNextBtn: document.getElementById("presentationNextBtn"),
+      presentationExitBtn: document.getElementById("presentationExitBtn"),
+      presentationDownloadBtn: document.getElementById("presentationDownloadBtn"),
       resetBtn: document.getElementById("resetBtn"),
       divisionFilter: document.getElementById("divisionFilter"),
       designationFilter: document.getElementById("designationFilter"),
@@ -984,6 +1154,11 @@
     els.fetchOnlineBtn.addEventListener("click", fetchOnlineData);
     els.endpointBtn.addEventListener("click", configureEndpoint);
     els.printBtn.addEventListener("click", () => window.print());
+    els.presentationBtn.addEventListener("click", openPresentationMode);
+    els.presentationPrevBtn.addEventListener("click", () => movePresentation(-1));
+    els.presentationNextBtn.addEventListener("click", () => movePresentation(1));
+    els.presentationExitBtn.addEventListener("click", closePresentationMode);
+    els.presentationDownloadBtn.addEventListener("click", downloadPresentationChart);
     els.resetBtn.addEventListener("click", resetDashboard);
     els.divisionFilter.addEventListener("change", applyFilters);
     els.designationFilter.addEventListener("change", applyFilters);
@@ -1013,6 +1188,12 @@
     });
     document.querySelectorAll("[data-download-chart]").forEach(button => {
       button.addEventListener("click", () => downloadChart(button.dataset.downloadChart));
+    });
+    document.addEventListener("keydown", event => {
+      if (!els.presentationShell.classList.contains("is-open")) return;
+      if (event.key === "Escape") closePresentationMode();
+      if (event.key === "ArrowLeft") movePresentation(-1);
+      if (event.key === "ArrowRight") movePresentation(1);
     });
 
     function handleFileUpload(event) {
@@ -1689,6 +1870,106 @@
 
     function setAskAnswer(html) {
       els.askAnswer.innerHTML = html;
+    }
+
+    function openPresentationMode() {
+      if (!state.submissions.length) {
+        els.fileState.textContent = "Upload or fetch data before opening Presentation Mode.";
+        return;
+      }
+      state.presentationSlides = buildPresentationSlides();
+      state.presentationIndex = 0;
+      els.presentationShell.classList.add("is-open");
+      els.presentationShell.setAttribute("aria-hidden", "false");
+      renderPresentationSlide();
+    }
+
+    function closePresentationMode() {
+      els.presentationShell.classList.remove("is-open");
+      els.presentationShell.setAttribute("aria-hidden", "true");
+    }
+
+    function movePresentation(direction) {
+      if (!state.presentationSlides.length) return;
+      state.presentationIndex = (state.presentationIndex + direction + state.presentationSlides.length) % state.presentationSlides.length;
+      renderPresentationSlide();
+    }
+
+    function buildPresentationSlides() {
+      const rows = state.filtered.length ? state.filtered : state.submissions;
+      const activityRows = rows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
+      const travelRows = rows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
+      const leaveRows = rows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
+      const topDivision = topEntry(counts(rows.map(row => row.division)));
+      const topStatus = topEntry(counts(activityRows.map(row => row.status)));
+      const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
+      const leaveLeader = topEntry(sumByDivision(leaveRows, "days"));
+
+      return [
+        {
+          type: "summary",
+          title: "Executive Snapshot",
+          body: `Current view covers ${rows.length} submissions, ${activityRows.length} activities, ${travelRows.length} foreign travel records, and ${leaveRows.length} leave records.`,
+          metrics: [
+            ["Top Division", topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available"],
+            ["Activity Status", topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available"],
+            ["Top Travel", topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available"],
+            ["Leave Leader", leaveLeader ? `${leaveLeader[0]} (${formatDays(leaveLeader[1])})` : "Not available"]
+          ]
+        },
+        { type: "html", title: "Auto Executive Brief", body: els.autoExecutiveBrief.innerHTML || "<p>No executive brief is available.</p>" },
+        { type: "html", title: "Smart Insight Cards", body: els.smartInsightCards.innerHTML || "<p>No smart insights are available.</p>" },
+        { type: "chart", title: "Submissions by Division", chartId: "divisionChart" },
+        { type: "chart", title: "Activity Status / Count", chartId: "statusChart" },
+        { type: "chart", title: "Activities by Month", chartId: "activityMonthChart" },
+        { type: "chart", title: "Foreign Travel by Destination", chartId: "travelChart" },
+        { type: "chart", title: "Foreign Travel by Event Type", chartId: "travelEventChart" },
+        { type: "chart", title: "Leave by Type", chartId: "leaveChart" },
+        { type: "chart", title: "Leave Days by Division", chartId: "leaveDaysChart" },
+        { type: "chart", title: "Division Activity Mix", chartId: "divisionMixChart" },
+        { type: "chart", title: "Description Keywords", chartId: "descriptionChart" }
+      ];
+    }
+
+    function renderPresentationSlide() {
+      const slide = state.presentationSlides[state.presentationIndex];
+      if (!slide) return;
+      els.presentationCount.textContent = `Slide ${state.presentationIndex + 1} of ${state.presentationSlides.length}`;
+      els.presentationDownloadBtn.style.display = slide.type === "chart" ? "inline-flex" : "none";
+
+      if (slide.type === "summary") {
+        els.presentationSlide.innerHTML = `
+          <h2>${escapeHtml(slide.title)}</h2>
+          <p>${escapeHtml(slide.body)}</p>
+          <div class="presentation-grid">
+            ${slide.metrics.map(([label, value]) => `
+              <div class="presentation-metric">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        return;
+      }
+
+      if (slide.type === "html") {
+        els.presentationSlide.innerHTML = `<h2>${escapeHtml(slide.title)}</h2><div class="presentation-grid">${slide.body}</div>`;
+        return;
+      }
+
+      const chart = document.getElementById(slide.chartId);
+      const svg = chart ? chart.querySelector("svg") : null;
+      els.presentationSlide.innerHTML = `
+        <h2>${escapeHtml(slide.title)}</h2>
+        <div class="presentation-chart">${svg ? svg.outerHTML : "<div class=\"empty\">No chart data available.</div>"}</div>
+      `;
+    }
+
+    function downloadPresentationChart() {
+      const slide = state.presentationSlides[state.presentationIndex];
+      if (!slide || slide.type !== "chart") return;
+      downloadChart(slide.chartId);
     }
 
     function updateSummaryActiveState() {
