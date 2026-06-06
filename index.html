@@ -1366,6 +1366,12 @@
       "INFORMATION TECHNOLOGY"
     ];
 
+    const FIELD_ALIASES = {
+      "Start Date": ["Start Date", "From", "Leave Start Date", "Date From", "Commencement Date", "Start"],
+      "End Date": ["End Date", "To", "Leave End Date", "Date To", "Resumption Date", "End"],
+      "Duration": ["Duration", "Number of Days", "No. of Days", "No of Days", "Leave Days", "Days", "Number of Leave Days", "Total Days"]
+    };
+
     const els = {
       fileInput: document.getElementById("fileInput"),
       fileState: document.getElementById("fileState"),
@@ -1634,7 +1640,7 @@
         const values = { [anchor]: anchorValue };
 
         fields.forEach(field => {
-          const fieldIdx = headers.findIndex((h, i) => i > idx && i < limit && normalize(h).startsWith(normalize(field)));
+          const fieldIdx = headers.findIndex((h, i) => i > idx && i < limit && fieldMatches(h, field));
           values[field] = fieldIdx >= 0 ? cleanText(row[fieldIdx]) : "";
         });
 
@@ -1674,14 +1680,15 @@
     function makeLeave(values) {
       const rawStart = values["Start Date"];
       const rawEnd = values["End Date"];
+      const duration = values["Duration"];
       return {
         type: values["Leave Type"],
         start: formatExcelDate(rawStart),
         startRaw: rawStart,
         end: formatExcelDate(rawEnd),
         endRaw: rawEnd,
-        duration: values["Duration"],
-        days: parseDurationDays(values["Duration"], rawStart, rawEnd),
+        duration,
+        days: parseDurationDays(duration, rawStart, rawEnd),
         remarks: values["Remarks"]
       };
     }
@@ -1862,7 +1869,7 @@
         ? Math.round((topStatus[1] / activityRows.length) * 100)
         : null;
       const travelShare = rows.length ? Math.round((travelRows.length / rows.length) * 100) : 0;
-      const leaveTotal = leaveRows.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      const leaveTotal = leaveRows.reduce((sum, row) => sum + leaveDayCount(row), 0);
       const mixLeader = topEntry(Object.fromEntries(Object.entries(divisionMix).map(([division, mix]) => [division, mix.activities + mix.travels + mix.leaves])));
       const topStatuses = topEntries(activityStatusCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
       const topDestinations = topEntries(travelDestinationCounts, 2).map(([label, value]) => `${label} (${value})`).join(", ");
@@ -2145,7 +2152,7 @@
       const statusBreakdown = topEntries(counts(activityRows.map(row => row.status)), 5);
       const travelBreakdown = topEntries(counts(travelRows.map(row => row.destination)), 5);
       const leaveBreakdown = topEntries(counts(leaveRows.map(row => row.type)), 5);
-      const leaveDays = leaveRows.reduce((total, row) => total + (Number(row.days) || 0), 0);
+      const leaveDays = leaveRows.reduce((total, row) => total + leaveDayCount(row), 0);
       const topStatus = topEntry(counts(activityRows.map(row => row.status)));
       const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
 
@@ -2162,7 +2169,7 @@
           ${spotlightListBox("Staff", staff.slice(0, 8), staff.length > 8 ? `${staff.length - 8} more staff member${staff.length - 8 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Activities", activityRows.slice(0, 6).map(row => `${row.title || "Untitled activity"} (${row.status || "No status"})`), activityRows.length > 6 ? `${activityRows.length - 6} more activit${activityRows.length - 6 === 1 ? "y" : "ies"}` : "")}
           ${spotlightListBox("Foreign Travel", travelRows.slice(0, 6).map(row => `${row.destination || "Unspecified destination"}${row.eventType ? ` - ${row.eventType}` : ""}`), travelRows.length > 6 ? `${travelRows.length - 6} more travel record${travelRows.length - 6 === 1 ? "" : "s"}` : "")}
-          ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${formatDays(row.days)}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
+          ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${formatDays(leaveDayCount(row))}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Status Breakdown", statusBreakdown.map(([label, value]) => `${label}: ${value}`), "")}
           <div class="spotlight-box spotlight-wide">
             <h3>Key Observations</h3>
@@ -2274,7 +2281,7 @@
 
         row.leaves.forEach((leave, index) => {
           const dateDays = dateSpanDays(leave.startRaw, leave.endRaw);
-          const parsedDays = Number(leave.days) || 0;
+          const parsedDays = leaveDayCount(leave);
           const hasDuration = Boolean(cleanText(leave.duration));
           const inconsistent = (hasDuration && parsedDays <= 0) || (dateDays > 0 && parsedDays > 0 && Math.abs(dateDays - parsedDays) > 1);
           if (inconsistent) {
@@ -2443,7 +2450,7 @@
       const leaves = rows.flatMap(row => row.leaves);
       const status = topEntry(counts(activities.map(row => row.status)));
       const travel = topEntry(counts(travels.map(row => row.destination)));
-      const leaveDays = leaves.reduce((sum, row) => sum + (Number(row.days) || 0), 0);
+      const leaveDays = leaves.reduce((sum, row) => sum + leaveDayCount(row), 0);
       return `<strong>${escapeHtml(division)}</strong> has <strong>${rows.length}</strong> submission${rows.length === 1 ? "" : "s"}, <strong>${activities.length}</strong> activit${activities.length === 1 ? "y" : "ies"}, <strong>${travels.length}</strong> foreign travel record${travels.length === 1 ? "" : "s"}, and <strong>${leaves.length}</strong> leave record${leaves.length === 1 ? "" : "s"}. ${status ? `The leading activity status is <strong>${escapeHtml(status[0])}</strong>. ` : ""}${travel ? `Top travel destination is <strong>${escapeHtml(travel[0])}</strong>. ` : ""}${leaves.length ? `Leave totals about <strong>${formatDays(leaveDays)}</strong>.` : ""}`;
     }
 
@@ -3012,7 +3019,7 @@
         ? row.travels.map(item => `<p><strong>${escapeHtml(item.destination)}</strong><br>${escapeHtml(item.purpose)}<br><span class="small-note">${escapeHtml(item.eventType)} | ${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)}</span></p>`).join("")
         : "<p class=\"small-note\">No foreign travel records.</p>";
       const leaveDetail = row.leaves.length
-        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatDays(item.days)}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
+        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatDays(leaveDayCount(item))}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
         : "<p class=\"small-note\">No leave records.</p>";
 
       return `
@@ -3167,7 +3174,8 @@
     function sumByDivision(rows, field) {
       return rows.reduce((acc, row) => {
         const division = row.parent.division || "Unspecified";
-        acc[division] = (acc[division] || 0) + (Number(row[field]) || 0);
+        const value = field === "days" ? leaveDayCount(row) : (Number(row[field]) || 0);
+        acc[division] = (acc[division] || 0) + value;
         return acc;
       }, {});
     }
@@ -3241,6 +3249,22 @@
 
     function divisionKey(value) {
       return cleanText(value).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+
+    function fieldMatches(header, field) {
+      const normalizedHeader = normalize(header);
+      return (FIELD_ALIASES[field] || [field]).some(alias => {
+        const normalizedAlias = normalize(alias);
+        if (normalizedAlias.length <= 3) return normalizedHeader === normalizedAlias || normalizedHeader.startsWith(`${normalizedAlias} `);
+        return normalizedHeader.startsWith(normalizedAlias) || (normalizedAlias.length > 3 && normalizedHeader.includes(normalizedAlias));
+      });
+    }
+
+    function leaveDayCount(leave) {
+      if (!leave) return 0;
+      const parsed = Number(leave.days);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      return parseDurationDays(leave.duration, leave.startRaw || leave.start, leave.endRaw || leave.end);
     }
 
     function cleanText(value) {
