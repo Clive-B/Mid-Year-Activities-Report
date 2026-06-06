@@ -213,6 +213,57 @@
       max-width: 920px;
     }
 
+    .executive-summary {
+      margin-bottom: 26px;
+      padding: 24px 28px;
+      border-left: 6px solid var(--nca-gold);
+    }
+
+    .executive-summary h2 {
+      margin: 0 0 12px;
+      color: var(--nca-blue-deep);
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .executive-summary p {
+      margin: 0;
+      color: #304158;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .summary-highlights {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .summary-chip {
+      min-height: 78px;
+      border: 1px solid #e4edf6;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 14px 16px;
+    }
+
+    .summary-chip span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .summary-chip strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--nca-blue-deep);
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -317,6 +368,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .summary-highlights {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .grid {
         grid-template-columns: 1fr;
       }
@@ -330,6 +385,10 @@
       .toolbar,
       .filters,
       .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-highlights {
         grid-template-columns: 1fr;
       }
 
@@ -419,6 +478,31 @@
       </article>
     </section>
 
+    <section class="toolbar executive-summary" aria-label="Executive summary">
+      <div>
+        <h2>Executive Summary</h2>
+        <p id="summaryNarrative">Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.</p>
+        <div class="summary-highlights">
+          <div class="summary-chip">
+            <span>Top Division</span>
+            <strong id="summaryTopDivision">-</strong>
+          </div>
+          <div class="summary-chip">
+            <span>Activity Status</span>
+            <strong id="summaryTopStatus">-</strong>
+          </div>
+          <div class="summary-chip">
+            <span>Top Travel</span>
+            <strong id="summaryTopTravel">-</strong>
+          </div>
+          <div class="summary-chip">
+            <span>Leave Leader</span>
+            <strong id="summaryLeaveLeader">-</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="filters" aria-label="Dashboard filters">
       <select id="divisionFilter" aria-label="Filter by division">
         <option value="">All Divisions</option>
@@ -503,6 +587,11 @@
       travelEventChart: document.getElementById("travelEventChart"),
       leaveDaysChart: document.getElementById("leaveDaysChart"),
       divisionMixChart: document.getElementById("divisionMixChart"),
+      summaryNarrative: document.getElementById("summaryNarrative"),
+      summaryTopDivision: document.getElementById("summaryTopDivision"),
+      summaryTopStatus: document.getElementById("summaryTopStatus"),
+      summaryTopTravel: document.getElementById("summaryTopTravel"),
+      summaryLeaveLeader: document.getElementById("summaryLeaveLeader"),
       tableWrap: document.getElementById("tableWrap"),
       recordNote: document.getElementById("recordNote")
     };
@@ -680,6 +769,7 @@
       els.travelCount.textContent = travelRows.length;
       els.leaveCount.textContent = leaveRows.length;
 
+      renderExecutiveSummary(rows, activityRows, travelRows, leaveRows);
       renderBarChart(els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
       renderBarChart(els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052" });
       renderBarChart(els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true });
@@ -690,6 +780,44 @@
       renderStackedChart(els.divisionMixChart, buildDivisionMix(rows));
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
+    }
+
+    function renderExecutiveSummary(rows, activityRows, travelRows, leaveRows) {
+      if (!rows.length) {
+        els.summaryNarrative.textContent = state.submissions.length
+          ? "No records match the current filter. Adjust the filters or search term to restore the executive summary."
+          : "Upload an Excel workbook to generate an executive summary of submissions, activities, foreign travels, and leave records.";
+        els.summaryTopDivision.textContent = "-";
+        els.summaryTopStatus.textContent = "-";
+        els.summaryTopTravel.textContent = "-";
+        els.summaryLeaveLeader.textContent = "-";
+        return;
+      }
+
+      const topDivision = topEntry(counts(rows.map(row => row.division)));
+      const topStatus = topEntry(counts(activityRows.map(row => row.status)));
+      const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
+      const topEventType = topEntry(counts(travelRows.map(row => row.eventType)));
+      const leaveLeader = topEntry(sumByDivision(leaveRows, "days"));
+      const divisionText = topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available";
+      const statusText = topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available";
+      const travelText = topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available";
+      const leaveText = leaveLeader ? `${leaveLeader[0]} (${formatNumber(leaveLeader[1])} days)` : "Not available";
+
+      els.summaryNarrative.textContent =
+        `The current view covers ${rows.length} submission${rows.length === 1 ? "" : "s"}, ` +
+        `${activityRows.length} activit${activityRows.length === 1 ? "y" : "ies"}, ` +
+        `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"}, and ` +
+        `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"}. ` +
+        `${topDivision ? `${topDivision[0]} leads submissions, while ` : ""}` +
+        `${topStatus ? `${topStatus[0]} is the dominant activity status. ` : ""}` +
+        `${topTravel ? `Foreign travel is most represented by ${topTravel[0]}` : "Foreign travel has no dominant destination"}` +
+        `${topEventType ? `, mainly under ${topEventType[0]}.` : "."}`;
+
+      els.summaryTopDivision.textContent = divisionText;
+      els.summaryTopStatus.textContent = statusText;
+      els.summaryTopTravel.textContent = travelText;
+      els.summaryLeaveLeader.textContent = leaveText;
     }
 
     function renderBarChart(target, data, options = {}) {
@@ -890,6 +1018,12 @@
         acc[division].leaves += row.leaves.length;
         return acc;
       }, {});
+    }
+
+    function topEntry(data) {
+      const entries = Object.entries(data).filter(([, value]) => Number(value) > 0);
+      if (!entries.length) return null;
+      return entries.sort((a, b) => b[1] - a[1])[0];
     }
 
     function unique(values) {
