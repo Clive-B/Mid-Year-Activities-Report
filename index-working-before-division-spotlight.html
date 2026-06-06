@@ -250,113 +250,6 @@
       color: var(--nca-blue-deep);
     }
 
-    .spotlight-panel {
-      display: none;
-      margin-bottom: 26px;
-      padding: 24px;
-      border-left: 6px solid var(--nca-gold);
-      cursor: default;
-    }
-
-    .spotlight-panel.is-open {
-      display: block;
-    }
-
-    .spotlight-panel:hover,
-    .spotlight-panel:focus-visible {
-      border-color: var(--line);
-      border-left-color: var(--nca-gold);
-      box-shadow: var(--shadow);
-      outline: none;
-      transform: none;
-    }
-
-    .spotlight-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-start;
-      margin-bottom: 18px;
-    }
-
-    .spotlight-title {
-      margin: 0;
-      color: var(--nca-blue-deep);
-      font-size: 26px;
-      line-height: 1.15;
-    }
-
-    .spotlight-subtitle {
-      margin-top: 6px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .spotlight-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .spotlight-metric {
-      border: 1px solid #e4edf6;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.82);
-      padding: 14px 16px;
-    }
-
-    .spotlight-metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-
-    .spotlight-metric strong {
-      display: block;
-      margin-top: 8px;
-      color: var(--nca-blue-deep);
-      font-size: 28px;
-      line-height: 1;
-    }
-
-    .spotlight-sections {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .spotlight-box {
-      border: 1px solid #e4edf6;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.82);
-      padding: 16px;
-      min-height: 142px;
-    }
-
-    .spotlight-box h3 {
-      margin: 0 0 10px;
-      color: var(--nca-blue-deep);
-      font-size: 16px;
-    }
-
-    .spotlight-box ul {
-      margin: 0;
-      padding-left: 18px;
-      color: #34445c;
-      line-height: 1.55;
-    }
-
-    .spotlight-box li + li {
-      margin-top: 5px;
-    }
-
-    .spotlight-wide {
-      grid-column: span 2;
-    }
-
     .presentation-shell {
       position: fixed;
       inset: 0;
@@ -831,21 +724,6 @@
       cursor: default;
     }
 
-    .records-wrap .summary-chip {
-      min-height: 0;
-      padding: 8px 10px;
-      background: rgba(237, 244, 252, 0.72);
-    }
-
-    .records-wrap .summary-chip span {
-      font-size: 10px;
-    }
-
-    .records-wrap .summary-chip strong {
-      margin-top: 3px;
-      font-size: 13px;
-    }
-
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -916,18 +794,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .spotlight-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .spotlight-sections {
-        grid-template-columns: 1fr;
-      }
-
-      .spotlight-wide {
-        grid-column: auto;
-      }
-
       .quality-head {
         flex-direction: column;
       }
@@ -969,14 +835,6 @@
       }
 
       .insight-cards {
-        grid-template-columns: 1fr;
-      }
-
-      .spotlight-head {
-        flex-direction: column;
-      }
-
-      .spotlight-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1132,17 +990,6 @@
         <option value="">All Designations</option>
       </select>
       <input id="searchInput" type="search" placeholder="Search name, activity, travel, leave" aria-label="Search records">
-    </section>
-
-    <section class="spotlight-panel card" id="divisionSpotlight" aria-label="Division Spotlight">
-      <div class="spotlight-head">
-        <div>
-          <h2 class="spotlight-title" id="spotlightTitle">Division Spotlight</h2>
-          <div class="spotlight-subtitle" id="spotlightSubtitle">Click a division to generate a focused mini-report.</div>
-        </div>
-        <button class="button ghost" id="spotlightCloseBtn" type="button" title="Close division spotlight">Close</button>
-      </div>
-      <div id="spotlightBody"></div>
     </section>
 
     <section class="toolbar ask-panel" aria-label="Ask the Dashboard">
@@ -1345,7 +1192,6 @@
       fileName: "",
       summaryActions: {},
       expandedRowId: "",
-      spotlightDivision: "",
       chartTypes: {},
       onlineEndpoint: localStorage.getItem("ncaDashboardEndpoint") || "",
       presentationIndex: 0,
@@ -1387,11 +1233,6 @@
       askInput: document.getElementById("askInput"),
       askBtn: document.getElementById("askBtn"),
       askAnswer: document.getElementById("askAnswer"),
-      divisionSpotlight: document.getElementById("divisionSpotlight"),
-      spotlightTitle: document.getElementById("spotlightTitle"),
-      spotlightSubtitle: document.getElementById("spotlightSubtitle"),
-      spotlightBody: document.getElementById("spotlightBody"),
-      spotlightCloseBtn: document.getElementById("spotlightCloseBtn"),
       qualityCards: document.getElementById("qualityCards"),
       qualityList: document.getElementById("qualityList"),
       qualityClearBtn: document.getElementById("qualityClearBtn"),
@@ -1430,17 +1271,13 @@
     els.presentationExitBtn.addEventListener("click", closePresentationMode);
     els.presentationDownloadBtn.addEventListener("click", downloadPresentationChart);
     els.resetBtn.addEventListener("click", resetDashboard);
-    els.divisionFilter.addEventListener("change", () => {
-      if (els.divisionFilter.value !== state.spotlightDivision) state.spotlightDivision = "";
-      applyFilters();
-    });
+    els.divisionFilter.addEventListener("change", applyFilters);
     els.designationFilter.addEventListener("change", applyFilters);
     els.searchInput.addEventListener("input", applyFilters);
     els.askBtn.addEventListener("click", askDashboard);
     els.askInput.addEventListener("keydown", event => {
       if (event.key === "Enter") askDashboard();
     });
-    els.spotlightCloseBtn.addEventListener("click", closeDivisionSpotlight);
     els.qualityClearBtn.addEventListener("click", restoreFullDataView);
     document.querySelectorAll("[data-summary-action]").forEach(button => {
       button.addEventListener("click", () => handleSummaryAction(button.dataset.summaryAction));
@@ -1726,16 +1563,15 @@
       els.leaveCount.textContent = leaveRows.length;
 
       renderExecutiveSummary(rows, activityRows, travelRows, leaveRows);
-      renderChoiceChart("divisionChart", els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: openDivisionSpotlight });
+      renderChoiceChart("divisionChart", els.divisionChart, counts(rows.map(row => row.division)), { color: "#0b3a78", onClick: value => setFilter(els.divisionFilter, value) });
       renderChoiceChart("leaveChart", els.leaveChart, counts(leaveRows.map(row => row.type)), { color: "#149052", onClick: value => setSearch(value) });
       renderChoiceChart("travelChart", els.travelChart, counts(travelRows.map(row => row.destination)), { color: "#f6bd19", darkText: true, onClick: value => setSearch(value) });
       renderChoiceChart("statusChart", els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
       renderChoiceChart("activityMonthChart", els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
       renderChoiceChart("travelEventChart", els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
-      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), openDivisionSpotlight, state.chartTypes.leaveDaysChart || "bar");
-      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), openDivisionSpotlight, state.chartTypes.divisionMixChart || "stacked-bar");
+      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value), state.chartTypes.leaveDaysChart || "bar");
+      renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value), state.chartTypes.divisionMixChart || "stacked-bar");
       renderChoiceChart("descriptionChart", els.descriptionChart, descriptionKeywordCounts(activityRows), { color: "#4c6fb0", onClick: value => setSearch(value) });
-      renderDivisionSpotlight();
       renderDataQualityMonitor(rows);
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
@@ -2087,126 +1923,6 @@
       `;
     }
 
-    function openDivisionSpotlight(division) {
-      const selected = canonicalDivision(division);
-      if (!selected || selected === "Unspecified") return;
-      state.spotlightDivision = selected;
-      els.divisionFilter.value = selected;
-      applyFilters();
-      requestAnimationFrame(() => {
-        els.divisionSpotlight.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-
-    function closeDivisionSpotlight() {
-      state.spotlightDivision = "";
-      renderDivisionSpotlight();
-    }
-
-    function renderDivisionSpotlight() {
-      const division = state.spotlightDivision;
-      if (!division) {
-        els.divisionSpotlight.classList.remove("is-open");
-        els.spotlightBody.innerHTML = "";
-        return;
-      }
-
-      const rows = state.submissions.filter(row => row.division === division);
-      const visibleRows = state.filtered.filter(row => row.division === division);
-      const reportRows = visibleRows.length ? visibleRows : rows;
-
-      els.divisionSpotlight.classList.add("is-open");
-      els.spotlightTitle.textContent = `${division} Spotlight`;
-
-      if (!rows.length) {
-        els.spotlightSubtitle.textContent = "No submissions have been captured for this official division yet.";
-        els.spotlightBody.innerHTML = `
-          <div class="spotlight-grid">
-            ${spotlightMetric("Staff", 0)}
-            ${spotlightMetric("Submissions", 0)}
-            ${spotlightMetric("Activities", 0)}
-            ${spotlightMetric("Travels", 0)}
-            ${spotlightMetric("Leave", 0)}
-          </div>
-          <div class="spotlight-sections">
-            <div class="spotlight-box spotlight-wide">
-              <h3>Key Observations</h3>
-              <ul><li>${escapeHtml(division)} has no visible submissions in the current dataset.</li><li>Follow up with the division focal person before final reporting.</li></ul>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const activityRows = reportRows.flatMap(row => row.activities.map(item => ({ ...item, parent: row })));
-      const travelRows = reportRows.flatMap(row => row.travels.map(item => ({ ...item, parent: row })));
-      const leaveRows = reportRows.flatMap(row => row.leaves.map(item => ({ ...item, parent: row })));
-      const staff = unique(reportRows.map(row => row.name)).filter(name => normalize(name) !== "unnamed");
-      const statusBreakdown = topEntries(counts(activityRows.map(row => row.status)), 5);
-      const travelBreakdown = topEntries(counts(travelRows.map(row => row.destination)), 5);
-      const leaveBreakdown = topEntries(counts(leaveRows.map(row => row.type)), 5);
-      const leaveDays = leaveRows.reduce((total, row) => total + (Number(row.days) || 0), 0);
-      const topStatus = topEntry(counts(activityRows.map(row => row.status)));
-      const topTravel = topEntry(counts(travelRows.map(row => row.destination)));
-
-      els.spotlightSubtitle.textContent = `${reportRows.length} visible submission${reportRows.length === 1 ? "" : "s"} from ${staff.length || "unlisted"} staff member${staff.length === 1 ? "" : "s"}.`;
-      els.spotlightBody.innerHTML = `
-        <div class="spotlight-grid">
-          ${spotlightMetric("Staff", staff.length)}
-          ${spotlightMetric("Submissions", reportRows.length)}
-          ${spotlightMetric("Activities", activityRows.length)}
-          ${spotlightMetric("Travels", travelRows.length)}
-          ${spotlightMetric("Leave", leaveRows.length)}
-        </div>
-        <div class="spotlight-sections">
-          ${spotlightListBox("Staff", staff.slice(0, 8), staff.length > 8 ? `${staff.length - 8} more staff member${staff.length - 8 === 1 ? "" : "s"}` : "")}
-          ${spotlightListBox("Activities", activityRows.slice(0, 6).map(row => `${row.title || "Untitled activity"} (${row.status || "No status"})`), activityRows.length > 6 ? `${activityRows.length - 6} more activit${activityRows.length - 6 === 1 ? "y" : "ies"}` : "")}
-          ${spotlightListBox("Foreign Travel", travelRows.slice(0, 6).map(row => `${row.destination || "Unspecified destination"}${row.eventType ? ` - ${row.eventType}` : ""}`), travelRows.length > 6 ? `${travelRows.length - 6} more travel record${travelRows.length - 6 === 1 ? "" : "s"}` : "")}
-          ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${formatDays(row.days)}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
-          ${spotlightListBox("Status Breakdown", statusBreakdown.map(([label, value]) => `${label}: ${value}`), "")}
-          <div class="spotlight-box spotlight-wide">
-            <h3>Key Observations</h3>
-            <ul>${divisionObservations(reportRows, activityRows, travelRows, leaveRows, leaveDays, topStatus, topTravel).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
-          </div>
-          ${spotlightListBox("Travel Highlights", travelBreakdown.map(([label, value]) => `${label}: ${value}`), "")}
-          ${spotlightListBox("Leave Breakdown", leaveBreakdown.map(([label, value]) => `${label}: ${value}`), leaveDays ? `Total leave duration: ${formatDays(leaveDays)}` : "")}
-        </div>
-      `;
-    }
-
-    function spotlightMetric(label, value) {
-      return `<div class="spotlight-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatNumber(value))}</strong></div>`;
-    }
-
-    function spotlightListBox(title, items, note) {
-      const listItems = items.length ? items : ["No records captured."];
-      return `
-        <div class="spotlight-box">
-          <h3>${escapeHtml(title)}</h3>
-          <ul>
-            ${listItems.map(item => `<li>${escapeHtml(item)}</li>`).join("")}
-            ${note ? `<li>${escapeHtml(note)}</li>` : ""}
-          </ul>
-        </div>
-      `;
-    }
-
-    function divisionObservations(rows, activityRows, travelRows, leaveRows, leaveDays, topStatus, topTravel) {
-      const observations = [
-        `${rows.length} submission${rows.length === 1 ? "" : "s"} are visible for this division.`
-      ];
-      observations.push(activityRows.length
-        ? `${activityRows.length} activit${activityRows.length === 1 ? "y" : "ies"} captured${topStatus ? `, with ${topStatus[0]} leading the status mix` : ""}.`
-        : "No activities have been captured for this division.");
-      observations.push(travelRows.length
-        ? `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"} captured${topTravel ? `; leading destination is ${topTravel[0]}` : ""}.`
-        : "No foreign travel record is captured for this division.");
-      observations.push(leaveRows.length
-        ? `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} captured, totaling ${formatDays(leaveDays)} where durations are available.`
-        : "No leave record is captured for this division.");
-      return observations;
-    }
-
     function buildDataQualityReport(rows) {
       const issues = [];
       const counts = {
@@ -2328,9 +2044,8 @@
       if (!value) return;
 
       if (action === "division" || action === "leave") {
+        els.divisionFilter.value = value;
         els.searchInput.value = "";
-        openDivisionSpotlight(value);
-        return;
       } else {
         els.searchInput.value = value;
       }
@@ -2957,7 +2672,7 @@
           <tr data-record-id="${escapeHtml(row.rowId)}">
             <td>${escapeHtml(row.rowId)}</td>
             <td>${escapeHtml(row.name)}<br><span class="small-note">${escapeHtml(row.email)}</span></td>
-            <td><button class="summary-chip" type="button" data-division-spotlight="${escapeHtml(row.division)}"><span>Division</span><strong>${escapeHtml(row.division)}</strong></button></td>
+            <td>${escapeHtml(row.division)}</td>
             <td>${escapeHtml(row.designation)}</td>
             <td>${activities || "<span class=\"small-note\">None</span>"}</td>
             <td>${descriptions || "<span class=\"small-note\">None</span>"}</td>
@@ -2993,13 +2708,6 @@
           const id = row.getAttribute("data-record-id");
           state.expandedRowId = state.expandedRowId === id ? "" : id;
           renderTable(state.filtered);
-        });
-      });
-
-      els.tableWrap.querySelectorAll("[data-division-spotlight]").forEach(button => {
-        button.addEventListener("click", event => {
-          event.stopPropagation();
-          openDivisionSpotlight(button.getAttribute("data-division-spotlight"));
         });
       });
     }
@@ -3050,7 +2758,6 @@
       els.divisionFilter.value = "";
       els.designationFilter.value = "";
       els.searchInput.value = "";
-      state.spotlightDivision = "";
       applyFilters();
     }
 
@@ -3060,7 +2767,6 @@
       els.searchInput.value = "";
       els.askInput.value = "";
       state.expandedRowId = "";
-      state.spotlightDivision = "";
       applyFilters();
       els.askAnswer.textContent = "Full data view restored.";
       els.fileState.textContent = state.fileName ? `Full data view restored for ${state.fileName}.` : "Full data view restored.";
@@ -3072,7 +2778,6 @@
       state.fileName = "";
       state.summaryActions = {};
       state.expandedRowId = "";
-      state.spotlightDivision = "";
       render();
     }
 
