@@ -854,7 +854,7 @@
       renderBarChart(els.statusChart, counts(activityRows.map(row => row.status)), { color: "#cf1f32", onClick: value => setSearch(value) });
       renderBarChart(els.activityMonthChart, countsByMonth(activityRows), { color: "#0b3a78", sort: "month", onClick: value => setSearch(value) });
       renderBarChart(els.travelEventChart, counts(travelRows.map(row => row.eventType)), { color: "#149052", onClick: value => setSearch(value) });
-      renderBarChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), { color: "#f6bd19", darkText: true, valueSuffix: " days", onClick: value => setFilter(els.divisionFilter, value) });
+      renderLeaveDaysChart(els.leaveDaysChart, sumByDivision(leaveRows, "days"), value => setFilter(els.divisionFilter, value));
       renderStackedChart(els.divisionMixChart, buildDivisionMix(rows), value => setFilter(els.divisionFilter, value));
       renderTable(rows);
       els.recordNote.textContent = state.fileName ? `Showing ${rows.length} of ${state.submissions.length} submissions from ${state.fileName}.` : "";
@@ -887,7 +887,7 @@
       const divisionText = topDivision ? `${topDivision[0]} (${topDivision[1]})` : "Not available";
       const statusText = topStatus ? `${topStatus[0]} (${topStatus[1]})` : "Not available";
       const travelText = topTravel ? `${topTravel[0]} (${topTravel[1]})` : "Not available";
-      const leaveText = leaveLeader ? `${leaveLeader[0]} (${formatNumber(leaveLeader[1])} days)` : "Not available";
+      const leaveText = leaveLeader ? `${leaveLeader[0]} (${formatDays(leaveLeader[1])})` : "Not available";
 
       els.summaryNarrative.textContent =
         `The current view covers ${rows.length} submission${rows.length === 1 ? "" : "s"}, ` +
@@ -989,6 +989,49 @@
       if (options.onClick) {
         target.querySelectorAll("[data-chart-value]").forEach(node => {
           node.addEventListener("click", () => options.onClick(node.getAttribute("data-chart-value")));
+        });
+      }
+    }
+
+    function renderLeaveDaysChart(target, data, onClick) {
+      const entries = Object.entries(data)
+        .filter(([, value]) => Number(value) > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      if (!entries.length) {
+        target.innerHTML = `<div class="empty">No data available for this view.</div>`;
+        return;
+      }
+
+      const width = 760;
+      const rowHeight = 42;
+      const height = Math.max(260, entries.length * rowHeight + 44);
+      const max = Math.max(...entries.map(([, value]) => Number(value) || 0));
+      const labelX = 0;
+      const barX = 255;
+      const barMaxWidth = 360;
+      const valueX = 645;
+
+      const rows = entries.map(([division, value], i) => {
+        const numericValue = Number(value) || 0;
+        const y = 30 + i * rowHeight;
+        const barWidth = Math.max(22, Math.round((numericValue / max) * barMaxWidth));
+        const safeDivision = escapeHtml(division || "Unspecified");
+        const click = onClick ? ` data-chart-value="${safeDivision}" style="cursor:pointer"` : "";
+        return `
+          <g${click}>
+            <text x="${labelX}" y="${y + 20}" fill="#34445c" font-size="14" font-weight="700">${truncate(safeDivision, 30)}</text>
+            <rect x="${barX}" y="${y}" width="${barWidth}" height="24" rx="5" fill="#f6bd19"></rect>
+            <text x="${valueX}" y="${y + 17}" fill="#1e2a3c" font-size="13" font-weight="800">${formatDays(numericValue)}</text>
+          </g>
+        `;
+      }).join("");
+
+      target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Leave days by division chart">${rows}</svg>`;
+      if (onClick) {
+        target.querySelectorAll("[data-chart-value]").forEach(node => {
+          node.addEventListener("click", () => onClick(node.getAttribute("data-chart-value")));
         });
       }
     }
@@ -1115,7 +1158,7 @@
         ? row.travels.map(item => `<p><strong>${escapeHtml(item.destination)}</strong><br>${escapeHtml(item.purpose)}<br><span class="small-note">${escapeHtml(item.eventType)} | ${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)}</span></p>`).join("")
         : "<p class=\"small-note\">No foreign travel records.</p>";
       const leaveDetail = row.leaves.length
-        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatNumber(item.days)} days</span><br>${escapeHtml(item.remarks)}</p>`).join("")
+        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatDays(item.days)}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
         : "<p class=\"small-note\">No leave records.</p>";
 
       return `
@@ -1289,6 +1332,13 @@
       const number = Number(value);
       if (!Number.isFinite(number)) return cleanText(value);
       return Number.isInteger(number) ? String(number) : number.toFixed(1);
+    }
+
+    function formatDays(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return cleanText(value);
+      const label = Math.abs(number) === 1 ? "day" : "days";
+      return `${formatNumber(number)} ${label}`;
     }
 
     function truncate(value, limit) {
