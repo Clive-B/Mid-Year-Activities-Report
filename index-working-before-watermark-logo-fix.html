@@ -34,37 +34,30 @@
       color: var(--ink);
       font-family: "Segoe UI", Arial, sans-serif;
       background: #eef4fb;
-      position: relative;
       overflow-x: hidden;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
-    }
-
-    body > * {
-      position: relative;
-      z-index: 1;
     }
 
     body::before {
       content: "";
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: -2;
       background:
-        linear-gradient(rgba(245, 249, 253, 0.18), rgba(245, 249, 253, 0.34)),
+        linear-gradient(rgba(245, 249, 253, 0.26), rgba(245, 249, 253, 0.48)),
         url("images.jpg") center center / cover no-repeat;
-      filter: saturate(0.96) contrast(1.12);
-      pointer-events: none;
+      filter: saturate(0.9) contrast(1.08);
     }
 
     body::after {
       content: "";
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: -1;
       background:
-        radial-gradient(circle at 18% 8%, rgba(246, 189, 25, 0.1), transparent 24%),
-        linear-gradient(90deg, rgba(255,255,255,0.32), rgba(255,255,255,0.06), rgba(255,255,255,0.32));
+        radial-gradient(circle at 18% 8%, rgba(246, 189, 25, 0.12), transparent 24%),
+        linear-gradient(90deg, rgba(255,255,255,0.46), rgba(255,255,255,0.12), rgba(255,255,255,0.46));
       pointer-events: none;
     }
 
@@ -1108,15 +1101,15 @@
     @media (max-width: 720px) {
       body::before {
         background:
-          linear-gradient(rgba(245, 249, 253, 0.16), rgba(245, 249, 253, 0.38)),
+          linear-gradient(rgba(245, 249, 253, 0.22), rgba(245, 249, 253, 0.5)),
           url("images.jpg") center center / cover no-repeat;
-        opacity: 1;
+        opacity: 0.96;
       }
 
       body::after {
         background:
-          radial-gradient(circle at 12% 4%, rgba(246, 189, 25, 0.1), transparent 28%),
-          linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.06), rgba(255,255,255,0.28));
+          radial-gradient(circle at 12% 4%, rgba(246, 189, 25, 0.12), transparent 28%),
+          linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.12), rgba(255,255,255,0.4));
       }
 
       .top-logo {
@@ -1348,7 +1341,7 @@
 <body>
   <header>
     <div class="top-logo">
-      <img src="nca-logo.png" alt="National Communications Authority 30 years logo">
+      <img src="IMG-20260305-WA0016-removebg-preview(2).png" alt="National Communications Authority 30 years logo">
     </div>
     <section class="hero">
       <h1>NCA Mid-Year Activity Report Dashboard - 2026</h1>
@@ -1674,7 +1667,7 @@
   <section class="presentation-shell" id="presentationShell" aria-label="Presentation mode" aria-hidden="true">
     <div class="presentation-top">
       <div class="presentation-brand">
-        <img src="nca-logo.png" alt="NCA logo">
+        <img src="IMG-20260305-WA0016-removebg-preview(2).png" alt="NCA logo">
         <span>NCA Mid-Year Activity Report Dashboard</span>
       </div>
       <div class="presentation-controls">
