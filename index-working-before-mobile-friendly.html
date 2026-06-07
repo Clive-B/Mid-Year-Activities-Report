@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NCA Mid-Year Activity Report Dashboard - 2026</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -24,19 +24,11 @@
       box-sizing: border-box;
     }
 
-    html {
-      min-height: 100%;
-      background: #eef4fb;
-    }
-
     body {
       margin: 0;
       color: var(--ink);
       font-family: "Segoe UI", Arial, sans-serif;
       background: #eef4fb;
-      overflow-x: hidden;
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
     }
 
     body::before {
@@ -893,17 +885,6 @@
     .chart {
       width: 100%;
       min-height: 280px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-inline: contain;
-    }
-
-    .chart svg {
-      display: block;
-      width: 100%;
-      min-width: 620px;
-      height: auto;
     }
 
     .empty {
@@ -922,8 +903,6 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: rgba(255,255,255,0.82);
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
     }
 
     table {
@@ -1024,17 +1003,6 @@
       font-size: 14px;
     }
 
-    @media (hover: none) {
-      .button:hover,
-      .card:hover,
-      .summary-chip:hover,
-      .insight-card:hover,
-      .chart-panel:hover,
-      .icon-button:hover {
-        transform: none;
-      }
-    }
-
     @media (max-width: 1100px) {
       .toolbar {
         grid-template-columns: 1fr 1fr 1fr;
@@ -1099,95 +1067,14 @@
     }
 
     @media (max-width: 720px) {
-      body::before {
-        background:
-          linear-gradient(rgba(245, 249, 253, 0.36), rgba(245, 249, 253, 0.72)),
-          url("images.jpg") center 92px / 150vw auto no-repeat;
-        opacity: 0.92;
-      }
-
-      body::after {
-        background:
-          radial-gradient(circle at 12% 4%, rgba(246, 189, 25, 0.2), transparent 28%),
-          linear-gradient(90deg, rgba(255,255,255,0.62), rgba(255,255,255,0.28), rgba(255,255,255,0.62));
-      }
-
       .top-logo {
-        min-height: 112px;
-        padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
-        background: rgba(246, 249, 253, 0.9);
-      }
-
-      .top-logo img {
-        width: min(300px, 82vw);
-      }
-
-      .hero {
-        padding: 24px 18px 26px;
-      }
-
-      .hero h1 {
-        font-size: 30px;
-        line-height: 1.12;
-      }
-
-      .hero p {
-        font-size: 16px;
-        line-height: 1.5;
-      }
-
-      main {
-        padding: 20px 12px calc(34px + env(safe-area-inset-bottom));
+        min-height: 120px;
       }
 
       .toolbar,
       .filters,
       .stats {
         grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .toolbar,
-      .executive-summary,
-      .timeline-panel,
-      .spotlight-panel,
-      .quality-panel,
-      .chart-panel,
-      .table-panel {
-        padding: 16px;
-      }
-
-      .upload-title {
-        font-size: 19px;
-      }
-
-      .upload-hint,
-      .file-state,
-      .small-note {
-        font-size: 13px;
-        line-height: 1.45;
-      }
-
-      input[type="file"],
-      select,
-      input[type="search"],
-      .button,
-      .icon-button {
-        min-height: 48px;
-        font-size: 16px;
-      }
-
-      .card {
-        min-height: 104px;
-        padding: 16px;
-      }
-
-      .value {
-        font-size: 36px;
-      }
-
-      .filters {
-        max-width: none;
       }
 
       .summary-highlights {
@@ -1214,50 +1101,8 @@
         grid-template-columns: 1fr;
       }
 
-      .quality-list {
-        max-height: 360px;
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
       .button {
         width: 100%;
-      }
-
-      .chart-head {
-        gap: 12px;
-      }
-
-      .chart-tools {
-        display: grid;
-        grid-template-columns: 1fr 52px;
-        width: 100%;
-      }
-
-      .chart-type {
-        width: 100%;
-      }
-
-      .chart {
-        min-height: 240px;
-      }
-
-      .chart svg {
-        min-width: 560px;
-      }
-
-      .records-wrap {
-        max-height: 430px;
-      }
-
-      table {
-        min-width: 980px;
-        font-size: 13px;
-      }
-
-      th,
-      td {
-        padding: 10px;
       }
 
       .presentation-top,
@@ -1266,49 +1111,8 @@
         flex-direction: column;
       }
 
-      .presentation-stage {
-        padding: 16px;
-      }
-
-      .presentation-slide {
-        width: 100%;
-        min-height: 68vh;
-        padding: 22px 16px;
-      }
-
-      .presentation-brand img {
-        width: 76px;
-      }
-
       .presentation-grid {
         grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 430px) {
-      .hero h1 {
-        font-size: 26px;
-      }
-
-      .hero p {
-        font-size: 15px;
-      }
-
-      .summary-chip strong,
-      .insight-card strong {
-        font-size: 17px;
-      }
-
-      .timeline-list {
-        padding-left: 18px;
-      }
-
-      .timeline-item::before {
-        left: -24px;
-      }
-
-      .chart svg {
-        min-width: 520px;
       }
     }
 
