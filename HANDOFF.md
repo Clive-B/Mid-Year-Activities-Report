@@ -60,6 +60,8 @@ Continue this pattern before future changes.
 24. Added a higher-resolution building watermark asset.
 25. Renamed the active dashboard from `index.html` to `Mid-Year Activity Report Dashboard.html`.
 26. Added print CSS to preserve dashboard colors, though browser/printer settings may still force grayscale if `Background graphics` is off or the printer is in black-and-white mode.
+27. Added working-day leave calculation using leave start/end dates, weekends, and Ghana 2026 public holidays.
+28. Updated leave charts, Division Spotlight, detailed records, and Data Quality Monitor to use or validate calculated working leave days.
 
 ## Power Automate Workflows
 
@@ -135,11 +137,13 @@ The Data Quality Monitor should flag official divisions with no visible submissi
 - In Chrome/Edge print preview, `Background graphics` must be checked for full color backgrounds and watermark effects.
 - The Canon printer profile shown by the user appeared to force grayscale in preview. Test with `Save as PDF` and color mode enabled.
 - `nca-mid-year-dashboard-data.json` is currently untracked and should normally remain uncommitted unless the user asks to publish a sample JSON.
-- The dashboard currently does not recalculate leave days by excluding weekends or Ghana public holidays. It reads submitted leave-day values from the data.
+- Leave calculations now use working days where valid leave start/end dates are available.
+- The dashboard excludes Saturdays, Sundays, and configured Ghana 2026 public holidays from calculated leave-day totals.
+- Submitted leave duration is still retained and compared against calculated working days in the Data Quality Monitor.
 
-## Next Planned Enhancement
+## Leave Working-Day Calculation
 
-Add working-day leave calculation:
+Current leave-day logic:
 
 - Use leave start date and leave end date.
 - Exclude Saturdays and Sundays.
@@ -151,7 +155,7 @@ Primary holiday source should be the official Ministry of the Interior Ghana hol
 
 - `https://www.mint.gov.gh/statutory-public-holidays/`
 
-The Data Quality Monitor should then flag:
+The Data Quality Monitor now flags:
 
 - Leave selected but start/end dates missing.
 - End date before start date.
@@ -159,6 +163,8 @@ The Data Quality Monitor should then flag:
 - Submitted leave days different from calculated working days.
 - Leave date ranges that include weekends/public holidays but appear to have counted them.
 - Cases where the dashboard cannot calculate because relevant date columns are missing.
+
+Current configured 2026 Ghana public holidays include fixed statutory holidays, observed/substituted holidays, Eid-Ul-Fitr/Shaqq Day dates reported for 2026, and Eid-Ul-Adha declared for 27 May 2026.
 
 ## Validation Checklist
 
@@ -192,4 +198,3 @@ Before committing dashboard edits:
 - `c57c3d5` Make dashboard phone friendly
 - `cef2f8d` Fix Android logo and sharpen watermark
 - `8cec2b0` Preserve dashboard colors when printing
-

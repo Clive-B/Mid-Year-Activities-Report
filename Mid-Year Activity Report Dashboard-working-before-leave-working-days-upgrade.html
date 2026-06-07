@@ -1542,7 +1542,7 @@
       <div class="quality-head">
         <div>
           <div class="upload-title">Data Quality Monitor</div>
-          <div class="upload-hint">Flags official divisions with no submissions, blank activity titles, missing travel dates, leave working-day mismatches, duplicate names, and incomplete submissions.</div>
+          <div class="upload-hint">Flags official divisions with no submissions, blank activity titles, missing travel dates, inconsistent leave duration, duplicate names, and incomplete submissions.</div>
         </div>
         <button class="button ghost" id="qualityClearBtn" type="button" title="Clear filters for full quality view">
           <span aria-hidden="true">&#8634;</span>
@@ -1771,29 +1771,6 @@
       "PROCUREMENT AND PROTOCOL",
       "INFORMATION TECHNOLOGY"
     ];
-
-    const GHANA_PUBLIC_HOLIDAYS = [
-      ["2026-01-01", "New Year's Day"],
-      ["2026-01-07", "Constitution Day"],
-      ["2026-01-09", "Constitution Day observed"],
-      ["2026-03-06", "Independence Day"],
-      ["2026-03-20", "Eid-Ul-Fitr"],
-      ["2026-03-21", "Shaqq Day"],
-      ["2026-03-23", "Shaqq Day observed"],
-      ["2026-04-03", "Good Friday"],
-      ["2026-04-06", "Easter Monday"],
-      ["2026-05-01", "Labour Day"],
-      ["2026-05-27", "Eid-Ul-Adha"],
-      ["2026-07-01", "Republic Day"],
-      ["2026-07-03", "Republic Day observed"],
-      ["2026-09-21", "Founder's Day"],
-      ["2026-12-04", "Farmer's Day"],
-      ["2026-12-25", "Christmas Day"],
-      ["2026-12-26", "Boxing Day"],
-      ["2026-12-28", "Boxing Day observed"]
-    ];
-
-    const GHANA_PUBLIC_HOLIDAY_MAP = new Map(GHANA_PUBLIC_HOLIDAYS);
 
     const FIELD_ALIASES = {
       "Start Date": ["Start Date", "From", "Leave Start Date", "Date From", "Commencement Date", "Start"],
@@ -2116,9 +2093,6 @@
       const rawStart = values["Start Date"];
       const rawEnd = values["End Date"];
       const duration = values["Duration"];
-      const submittedDays = parseSubmittedLeaveDays(duration);
-      const calendarDays = dateSpanDays(rawStart, rawEnd);
-      const workingDays = workingDaysBetween(rawStart, rawEnd);
       return {
         type: values["Leave Type"],
         start: formatExcelDate(rawStart),
@@ -2126,10 +2100,7 @@
         end: formatExcelDate(rawEnd),
         endRaw: rawEnd,
         duration,
-        submittedDays,
-        calendarDays,
-        workingDays,
-        days: workingDays > 0 ? workingDays : submittedDays,
+        days: parseDurationDays(duration, rawStart, rawEnd),
         remarks: values["Remarks"]
       };
     }
@@ -2389,8 +2360,8 @@
 
       const leaveBrief = leaveRows.length
         ? [
-            `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} are captured, totaling ${formatDays(leaveTotal)} calculated working leave day${leaveTotal === 1 ? "" : "s"} where dates are available.`,
-            leaveLeader ? `${leaveLeader[0]} accounts for the highest working leave-day total at ${formatDays(leaveLeader[1])}.` : "",
+            `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} are captured, totaling ${formatDays(leaveTotal)} where durations are available.`,
+            leaveLeader ? `${leaveLeader[0]} accounts for the highest leave-day total at ${formatDays(leaveLeader[1])}.` : "",
             leaveRows.length > rows.length ? "Multiple leave entries are present for some submissions." : "Leave records are not concentrated above submission count."
           ].filter(Boolean).join(" ")
         : "No leave records are present in the current view.";
@@ -2463,7 +2434,7 @@
       const leaveClass = leaveLeader && Number(leaveLeader[1]) >= 10 ? "watch" : "good";
       const leaveTitle = leaveLeader ? leaveLeader[0] : "None";
       const leaveBody = leaveLeader
-        ? `${leaveLeader[0]} records the highest calculated working leave total at ${formatDays(leaveLeader[1])}. ${leaveRows.length > rows.length ? "Multiple leave entries appear within some submissions." : "Leave entries appear broadly in line with submission count."}`
+        ? `${leaveLeader[0]} records the highest leave total at ${formatDays(leaveLeader[1])}. ${leaveRows.length > rows.length ? "Multiple leave entries appear within some submissions." : "Leave entries appear broadly in line with submission count."}`
         : "No leave pattern is available in the current view.";
 
       const completeness = dataCompleteness(rows);
@@ -2665,14 +2636,14 @@
           ${spotlightListBox("Staff", staffWithRoles.slice(0, 8), staffWithRoles.length > 8 ? `${staffWithRoles.length - 8} more staff member${staffWithRoles.length - 8 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Activities", activityRows.slice(0, 6).map(row => `${row.title || "Untitled activity"} (${row.status || "No status"})`), activityRows.length > 6 ? `${activityRows.length - 6} more activit${activityRows.length - 6 === 1 ? "y" : "ies"}` : "")}
           ${spotlightListBox("Foreign Travel", travelRows.slice(0, 6).map(row => `${row.destination || "Unspecified destination"}${row.eventType ? ` - ${row.eventType}` : ""}`), travelRows.length > 6 ? `${travelRows.length - 6} more travel record${travelRows.length - 6 === 1 ? "" : "s"}` : "")}
-          ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${leaveDurationLabel(row)}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
+          ${spotlightListBox("Leave", leaveRows.slice(0, 6).map(row => `${row.type || "Unspecified leave"} - ${formatDays(leaveDayCount(row))}`), leaveRows.length > 6 ? `${leaveRows.length - 6} more leave record${leaveRows.length - 6 === 1 ? "" : "s"}` : "")}
           ${spotlightListBox("Status Breakdown", statusBreakdown.map(([label, value]) => `${label}: ${value}`), "")}
           <div class="spotlight-box spotlight-wide">
             <h3>Key Observations</h3>
             <ul>${divisionObservations(reportRows, activityRows, travelRows, leaveRows, leaveDays, topStatus, topTravel).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
           </div>
           ${spotlightListBox("Travel Highlights", travelBreakdown.map(([label, value]) => `${label}: ${value}`), "")}
-          ${spotlightListBox("Leave Breakdown", leaveBreakdown.map(([label, value]) => `${label}: ${value}`), leaveDays ? `Total working leave duration: ${formatDays(leaveDays)}` : "")}
+          ${spotlightListBox("Leave Breakdown", leaveBreakdown.map(([label, value]) => `${label}: ${value}`), leaveDays ? `Total leave duration: ${formatDays(leaveDays)}` : "")}
         </div>
       `;
     }
@@ -2724,7 +2695,7 @@
         ? `${travelRows.length} foreign travel record${travelRows.length === 1 ? "" : "s"} captured${topTravel ? `; leading destination is ${topTravel[0]}` : ""}.`
         : "No foreign travel record is captured for this division.");
       observations.push(leaveRows.length
-        ? `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} captured, totaling ${formatDays(leaveDays)} working leave day${leaveDays === 1 ? "" : "s"} where dates are available.`
+        ? `${leaveRows.length} leave record${leaveRows.length === 1 ? "" : "s"} captured, totaling ${formatDays(leaveDays)} where durations are available.`
         : "No leave record is captured for this division.");
       return observations;
     }
@@ -2795,10 +2766,13 @@
         });
 
         row.leaves.forEach((leave, index) => {
-          const assessment = assessLeaveDuration(leave);
-          if (assessment.issue) {
+          const dateDays = dateSpanDays(leave.startRaw, leave.endRaw);
+          const parsedDays = leaveDayCount(leave);
+          const hasDuration = Boolean(cleanText(leave.duration));
+          const inconsistent = (hasDuration && parsedDays <= 0) || (dateDays > 0 && parsedDays > 0 && Math.abs(dateDays - parsedDays) > 1);
+          if (inconsistent) {
             counts.leaveDurationIssue += 1;
-            issues.push({ type: "Leave duration issue", record, division, detail: `Leave ${index + 1}: ${assessment.detail}` });
+            issues.push({ type: "Leave duration issue", record, division, detail: `Leave ${index + 1} duration is ${leave.duration || "blank"} while date span suggests ${dateDays ? formatDays(dateDays) : "an unavailable date span"}.` });
           }
         });
 
@@ -2840,89 +2814,6 @@
       const endDate = excelDateToDate(end);
       if (!startDate || !endDate || endDate < startDate) return 0;
       return Math.round((endDate - startDate) / 86400000) + 1;
-    }
-
-    function workingDaysBetween(start, end) {
-      const startDate = excelDateToDate(start);
-      const endDate = excelDateToDate(end);
-      if (!startDate || !endDate || endDate < startDate) return 0;
-
-      let count = 0;
-      const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-      const last = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
-
-      while (cursor <= last) {
-        const day = cursor.getUTCDay();
-        const key = dateKey(cursor);
-        if (day !== 0 && day !== 6 && !GHANA_PUBLIC_HOLIDAY_MAP.has(key)) count += 1;
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
-      }
-
-      return count;
-    }
-
-    function assessLeaveDuration(leave) {
-      const startDate = excelDateToDate(leave.startRaw || leave.start);
-      const endDate = excelDateToDate(leave.endRaw || leave.end);
-      const submittedDays = parseSubmittedLeaveDays(leave.duration);
-      const hasSubmittedDays = submittedDays > 0;
-
-      if (!startDate || !endDate) {
-        return {
-          issue: true,
-          detail: `start or end date is missing, so submitted duration "${leave.duration || "blank"}" cannot be checked against working days.`
-        };
-      }
-
-      if (endDate < startDate) {
-        return {
-          issue: true,
-          detail: `end date ${formatExcelDate(leave.endRaw || leave.end)} is before start date ${formatExcelDate(leave.startRaw || leave.start)}.`
-        };
-      }
-
-      if (!hasSubmittedDays) {
-        return {
-          issue: true,
-          detail: "submitted leave days are blank or not numeric."
-        };
-      }
-
-      const calendarDays = dateSpanDays(leave.startRaw || leave.start, leave.endRaw || leave.end);
-      const workingDays = workingDaysBetween(leave.startRaw || leave.start, leave.endRaw || leave.end);
-      const excludedDays = excludedLeaveDays(leave.startRaw || leave.start, leave.endRaw || leave.end);
-      const difference = Math.abs(submittedDays - workingDays);
-
-      if (difference > 0.01) {
-        const exclusions = excludedDays.length ? ` Excluded non-working days: ${excludedDays.join(", ")}.` : "";
-        return {
-          issue: true,
-          detail: `submitted ${formatDays(submittedDays)} but calculated ${formatDays(workingDays)} working day${workingDays === 1 ? "" : "s"} from a ${formatDays(calendarDays)} calendar span.${exclusions}`
-        };
-      }
-
-      return { issue: false, detail: "" };
-    }
-
-    function excludedLeaveDays(start, end) {
-      const startDate = excelDateToDate(start);
-      const endDate = excelDateToDate(end);
-      if (!startDate || !endDate || endDate < startDate) return [];
-
-      const excluded = [];
-      const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-      const last = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
-
-      while (cursor <= last) {
-        const day = cursor.getUTCDay();
-        const key = dateKey(cursor);
-        const holiday = GHANA_PUBLIC_HOLIDAY_MAP.get(key);
-        if (holiday) excluded.push(`${formatDateKey(key)} (${holiday})`);
-        else if (day === 0 || day === 6) excluded.push(`${formatDateKey(key)} (${day === 0 ? "Sunday" : "Saturday"})`);
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
-      }
-
-      return excluded;
     }
 
     function handleSummaryAction(action) {
@@ -3592,7 +3483,7 @@
           .map(description => escapeHtml(description))
           .join("<br>");
         const travels = row.travels.map(t => `${escapeHtml(t.destination)}${t.purpose ? ` - ${escapeHtml(t.purpose)}` : ""}`).join("<br>");
-        const leaves = row.leaves.map(l => `${escapeHtml(l.type)} - ${escapeHtml(leaveDurationLabel(l))}`).join("<br>");
+        const leaves = row.leaves.map(l => `${escapeHtml(l.type)}${l.duration ? ` - ${escapeHtml(l.duration)}` : ""}`).join("<br>");
         const expanded = state.expandedRowId === row.rowId;
         return `
           <tr data-record-id="${escapeHtml(row.rowId)}">
@@ -3655,7 +3546,7 @@
         ? row.travels.map(item => `<p><strong>${escapeHtml(item.destination)}</strong><br>${escapeHtml(item.purpose)}<br><span class="small-note">${escapeHtml(item.eventType)} | ${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)}</span></p>`).join("")
         : "<p class=\"small-note\">No foreign travel records.</p>";
       const leaveDetail = row.leaves.length
-        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(leaveDurationLabel(item))}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
+        ? row.leaves.map(item => `<p><strong>${escapeHtml(item.type)}</strong><br><span class="small-note">${escapeHtml(item.start)} to ${escapeHtml(item.end)} | ${escapeHtml(item.duration)} | ${formatDays(leaveDayCount(item))}</span><br>${escapeHtml(item.remarks)}</p>`).join("")
         : "<p class=\"small-note\">No leave records.</p>";
 
       return `
@@ -3959,12 +3850,8 @@
 
     function leaveDayCount(leave) {
       if (!leave) return 0;
-      const working = Number(leave.workingDays);
-      if (Number.isFinite(working) && working > 0) return working;
       const parsed = Number(leave.days);
       if (Number.isFinite(parsed) && parsed > 0) return parsed;
-      const submitted = Number(leave.submittedDays);
-      if (Number.isFinite(submitted) && submitted > 0) return submitted;
       return parseDurationDays(leave.duration, leave.startRaw || leave.start, leave.endRaw || leave.end);
     }
 
@@ -4007,19 +3894,6 @@
       return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
-    function dateKey(date) {
-      const year = date.getUTCFullYear();
-      const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-      const day = String(date.getUTCDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
-
-    function formatDateKey(key) {
-      const date = new Date(`${key}T00:00:00Z`);
-      if (Number.isNaN(date.getTime())) return key;
-      return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-    }
-
     function monthLabel(value) {
       const date = excelDateToDate(value);
       if (!date) return "";
@@ -4046,22 +3920,9 @@
       const startDate = excelDateToDate(start);
       const endDate = excelDateToDate(end);
       if (startDate && endDate && endDate >= startDate) {
-        return workingDaysBetween(start, end);
+        return Math.round((endDate - startDate) / 86400000) + 1;
       }
       return 0;
-    }
-
-    function parseSubmittedLeaveDays(duration) {
-      const text = cleanText(duration).toLowerCase();
-      const direct = Number(text);
-      if (Number.isFinite(direct) && direct > 0) return direct;
-
-      const match = text.match(/(\d+(?:\.\d+)?)/);
-      if (!match) return 0;
-      const value = Number(match[1]);
-      if (!Number.isFinite(value) || value <= 0) return 0;
-      if (text.includes("week")) return value * 5;
-      return value;
     }
 
     function formatNumber(value) {
@@ -4075,24 +3936,6 @@
       if (!Number.isFinite(number)) return cleanText(value);
       const label = Math.abs(number) === 1 ? "day" : "days";
       return `${formatNumber(number)} ${label}`;
-    }
-
-    function leaveDurationLabel(leave) {
-      const working = Number(leave && leave.workingDays);
-      const submitted = Number(leave && leave.submittedDays);
-      const duration = cleanText(leave && leave.duration);
-      const parts = [];
-
-      if (Number.isFinite(working) && working > 0) parts.push(`${formatDays(working)} working`);
-      else parts.push(formatDays(leaveDayCount(leave)));
-
-      if (Number.isFinite(submitted) && submitted > 0 && Math.abs(submitted - leaveDayCount(leave)) > 0.01) {
-        parts.push(`submitted ${formatDays(submitted)}`);
-      } else if (duration) {
-        parts.push(`submitted ${duration}`);
-      }
-
-      return parts.join("; ");
     }
 
     function truncate(value, limit) {
